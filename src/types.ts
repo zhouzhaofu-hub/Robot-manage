@@ -5,11 +5,17 @@
 
 export interface Robot {
   id: string;
+  sn: string; // SN码
   name: string;
-  status: 'online' | 'offline' | 'error';
+  model: string; // 机器人型号
+  status: 'online' | 'offline' | 'error' | 'standby' | 'working'; // 在线 / 离线 / 故障 / 待机 / 作业中
   battery: number;
+  location: string; // 定位
+  institutionType: 'hospital' | 'community' | 'home'; // 绑定机构类型
+  institutionName: string; // 绑定机构名称 (科室/站点/姓名)
+  onboardingMethod: 'auto' | 'qrcode' | 'batch'; // 入网方式: WiFi/4G/5G 自动配网、扫码绑定、批量导入
   lastActive: string;
-  externalLink: string;
+  externalLink?: string;
 }
 
 export interface KnowledgeItem {
@@ -48,6 +54,7 @@ export interface HealthArchive {
   emergencyContacts: EmergencyContact[];
   medicalOrders: MedicalOrder[];
   lastExamDate: string;
+  status?: 'active' | 'inactive';
 }
 
 export interface AlertRule {

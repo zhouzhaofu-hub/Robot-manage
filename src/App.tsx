@@ -27,7 +27,11 @@ import {
   ChevronDown,
   LayoutDashboard,
   Library,
-  Settings2
+  Settings2,
+  LayoutGrid,
+  List,
+  Search,
+  Power
 } from 'lucide-react';
 import { 
   motion, 
@@ -45,7 +49,14 @@ import {
   BatteryMedium,
   Smartphone,
   Video,
-  Scale
+  Scale,
+  MapPin,
+  QrCode,
+  Package,
+  ShieldCheck,
+  Zap,
+  Building2,
+  Home
 } from 'lucide-react';
 
 // Mock Data Constants
@@ -67,9 +78,45 @@ const MOCK_DEVICES: SmartDevice[] = [
 ];
 
 const MOCK_ROBOTS: Robot[] = [
-  { id: '1', name: '智护-A01', status: 'online', battery: 85, lastActive: '2026-04-20 09:30', externalLink: 'https://robot-cloud.jiahe.com/device/1' },
-  { id: '2', name: '智护-A02', status: 'online', battery: 42, lastActive: '2026-04-20 09:28', externalLink: 'https://robot-cloud.jiahe.com/device/2' },
-  { id: '3', name: '智护-B05', status: 'error', battery: 12, lastActive: '2026-04-19 22:15', externalLink: 'https://robot-cloud.jiahe.com/device/3' },
+  { 
+    id: '1', 
+    sn: 'JH-SN-8801', 
+    name: '智护-A01', 
+    model: 'JH-Alpha V1',
+    status: 'online', 
+    battery: 85, 
+    location: '张大爷家-客厅', 
+    institutionType: 'home', 
+    institutionName: '张大爷家中',
+    onboardingMethod: 'auto',
+    lastActive: '1分钟前' 
+  },
+  { 
+    id: '2', 
+    sn: 'JH-SN-8802', 
+    name: '智护-A02', 
+    model: 'JH-Alpha V1',
+    status: 'working', 
+    battery: 42, 
+    location: '康复中心-走廊', 
+    institutionType: 'hospital', 
+    institutionName: '中心医院康复科',
+    onboardingMethod: 'batch',
+    lastActive: '实时' 
+  },
+  { 
+    id: '3', 
+    sn: 'JH-SN-9201', 
+    name: '智护-B05', 
+    model: 'JH-Beta V2',
+    status: 'error', 
+    battery: 12, 
+    location: '社区站-充电位', 
+    institutionType: 'community', 
+    institutionName: '幸福里社区站点',
+    onboardingMethod: 'qrcode',
+    lastActive: '2小时前' 
+  },
 ];
 
 const MOCK_ARCHIVES: HealthArchive[] = [
@@ -96,7 +143,8 @@ const MOCK_ARCHIVES: HealthArchive[] = [
       { id: 'O1', type: 'medication', content: '规律服用降压药', frequency: '每日早8点' },
       { id: 'O2', type: 'checkup', content: '心电图复查', frequency: '每季度一次' }
     ],
-    lastExamDate: '2026-03-20'
+    lastExamDate: '2026-03-20',
+    status: 'active'
   },
   { 
     id: '2', 
@@ -118,7 +166,8 @@ const MOCK_ARCHIVES: HealthArchive[] = [
     medicalOrders: [
       { id: 'O3', type: 'rehab', content: '膝关节屈伸训练', frequency: '每日两次' }
     ],
-    lastExamDate: '2026-04-05'
+    lastExamDate: '2026-04-05',
+    status: 'active'
   }
 ];
 
@@ -190,6 +239,7 @@ export default function App() {
             collapsed={!sidebarOpen}
           >
             <NavItem label="智能设备管理" id="devices" active={activeTab === 'devices'} onClick={() => setActiveTab('devices')} collapsed={!sidebarOpen} />
+            <NavItem label="机器人管理" id="robots" active={activeTab === 'robots'} onClick={() => setActiveTab('robots')} collapsed={!sidebarOpen} />
           </NavSubGroup>
 
           <NavSubGroup 
@@ -252,6 +302,7 @@ export default function App() {
             <span className="text-slate-900 font-bold">
               {activeTab === 'archives' && '健康档案管理'}
               {activeTab === 'devices' && '智能设备管理'}
+              {activeTab === 'robots' && '机器人管理'}
               {activeTab === 'tasks' && '计划任务管理'}
               {activeTab === 'alerts' && '预警规则管理'}
               {activeTab === 'thresholds' && '指标阈值管理'}
@@ -275,6 +326,7 @@ export default function App() {
           <AnimatePresence mode="wait">
             {activeTab === 'tasks' && <TaskMgmtView key="tasks" />}
             {activeTab === 'devices' && <SmartDeviceMgmtView key="devices" />}
+            {activeTab === 'robots' && <RobotMgmtView key="robots" />}
             {activeTab === 'archives' && <ArchivesView key="archives" />}
             {activeTab === 'alerts' && <AlertsView key="alerts" />}
             {activeTab === 'thresholds' && <ThresholdsView key="thresholds" />}
@@ -531,6 +583,147 @@ function SmartDeviceMgmtView() {
   );
 }
 
+function RobotMgmtView() {
+  const [robots] = useState<Robot[]>(MOCK_ROBOTS);
+  const [filterType, setFilterType] = useState<string>('all');
+
+  const filteredRobots = robots.filter(r => 
+    filterType === 'all' || r.institutionType === filterType
+  );
+
+  return (
+    <motion.div 
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="space-y-6"
+    >
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+        <div className="flex items-center gap-4">
+          <h3 className="font-bold text-xl text-slate-800">机器人设备管理</h3>
+          <div className="flex bg-white border border-slate-200 rounded-lg p-1 shadow-sm">
+            {['all', 'hospital', 'community', 'home'].map((type) => (
+              <button
+                key={type}
+                onClick={() => setFilterType(type)}
+                className={cn(
+                  "px-3 py-1.5 rounded-md text-xs font-bold transition-all",
+                  filterType === type ? "bg-blue-600 text-white shadow-md shadow-blue-200" : "text-slate-500 hover:bg-slate-50"
+                )}
+              >
+                {type === 'all' && '全部'}
+                {type === 'hospital' && '医院科室'}
+                {type === 'community' && '社区站点'}
+                {type === 'home' && '家庭住户'}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="flex gap-3">
+          <button className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-lg text-sm font-bold hover:bg-slate-50 shadow-sm transition-all active:scale-95">
+            <QrCode size={18} className="text-blue-500" /> 扫码绑定
+          </button>
+          <button className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-lg text-sm font-bold hover:bg-slate-50 shadow-sm transition-all active:scale-95">
+            <Package size={18} className="text-indigo-500" /> 批量导入
+          </button>
+          <button className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-bold hover:bg-blue-700 shadow-lg shadow-blue-100 transition-all active:scale-95">
+            <Plus size={18} /> 新增机器人
+          </button>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+        {filteredRobots.map((robot) => (
+          <div key={robot.id} className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden hover:shadow-md transition-shadow group">
+            <div className="p-6">
+              <div className="flex justify-between items-start mb-6">
+                <div className="flex items-center gap-4">
+                  <div className={cn(
+                    "w-14 h-14 rounded-2xl flex items-center justify-center shadow-inner transition-colors",
+                    robot.status === 'error' ? 'bg-red-50 text-red-500' : 'bg-blue-50 text-blue-500 group-hover:bg-blue-600 group-hover:text-white'
+                  )}>
+                    <Bot size={32} />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-lg text-slate-800">{robot.name}</h4>
+                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">{robot.model}</p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <span className={cn(
+                    "px-2 py-1 rounded-full text-[10px] font-black uppercase tracking-tight",
+                    robot.status === 'online' ? 'bg-green-100 text-green-700' : 
+                    robot.status === 'working' ? 'bg-blue-100 text-blue-700 animate-pulse' :
+                    robot.status === 'error' ? 'bg-red-100 text-red-700' : 'bg-slate-100 text-slate-500'
+                  )}>
+                    {robot.status === 'online' ? '在线' : 
+                     robot.status === 'working' ? '作业中' : 
+                     robot.status === 'error' ? '故障' : 
+                     robot.status === 'standby' ? '待机' : '离线'}
+                  </span>
+                  <div className="mt-2 text-[10px] text-slate-400 font-mono font-bold">ID: {robot.id}</div>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="bg-slate-50 rounded-xl p-3 border border-slate-100">
+                    <div className="flex items-center gap-2 mb-1">
+                      <ShieldCheck size={14} className="text-blue-500" />
+                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">绑定机构</span>
+                    </div>
+                    <div className="text-xs font-bold text-slate-700 truncate">{robot.institutionName}</div>
+                  </div>
+                  <div className="bg-slate-50 rounded-xl p-3 border border-slate-100">
+                    <div className="flex items-center gap-2 mb-1">
+                      <MapPin size={14} className="text-indigo-500" />
+                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">实时位置</span>
+                    </div>
+                    <div className="text-xs font-bold text-slate-700 truncate">{robot.location}</div>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between px-1">
+                  <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-1.5" title="剩余电量">
+                      <BatteryMedium size={14} className={cn(robot.battery < 20 ? 'text-red-500' : 'text-green-500')} />
+                      <span className="text-xs font-bold text-slate-600">{robot.battery}%</span>
+                    </div>
+                    <div className="flex items-center gap-1.5" title="最后在线">
+                      <Clock size={14} className="text-slate-300" />
+                      <span className="text-xs font-bold text-slate-400">{robot.lastActive}</span>
+                    </div>
+                  </div>
+                  <div className="text-[10px] text-slate-400 bg-slate-100 px-2 py-0.5 rounded font-bold uppercase tracking-tight">
+                    SN: {robot.sn}
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div className="bg-slate-50/50 border-t border-slate-100 p-4 flex gap-2">
+              <button className="flex-1 py-2 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-600 hover:bg-blue-600 hover:text-white hover:border-blue-600 transition-all shadow-sm">
+                远程控制
+              </button>
+              <button className="flex-1 py-2 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-600 hover:bg-blue-600 hover:text-white hover:border-blue-600 transition-all shadow-sm">
+                作业日志
+              </button>
+              <button className="p-2 bg-white border border-slate-200 rounded-lg text-slate-400 hover:text-blue-600 hover:border-blue-200 transition-all shadow-sm">
+                <Settings size={14} />
+              </button>
+            </div>
+          </div>
+        ))}
+        <div className="border-2 border-dashed border-slate-200 rounded-2xl flex flex-col items-center justify-center p-12 text-slate-400 hover:text-blue-500 hover:border-blue-300 transition-all cursor-pointer bg-slate-50/30 group">
+          <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center mb-4 group-hover:bg-blue-50 transition-colors">
+            <Plus size={32} />
+          </div>
+          <span className="text-sm font-black uppercase tracking-widest">入网新设备</span>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
 function StatCard({ title, value, sub, icon, color }: any) {
   return (
     <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 flex items-start justify-between">
@@ -551,11 +744,26 @@ function ArchivesView() {
   const [selectedArchive, setSelectedArchive] = useState<HealthArchive | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState<HealthArchive | null>(null);
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const filteredArchives = archives.filter(a => 
+    a.name.includes(searchQuery) || 
+    a.id.includes(searchQuery) ||
+    a.conditions.some(c => c.includes(searchQuery))
+  );
 
   const startEdit = (archive: HealthArchive) => {
     setEditForm({ ...archive });
     setIsEditing(true);
     setSelectedArchive(archive);
+  };
+
+  const toggleStatus = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setArchives(prev => prev.map(a => 
+      a.id === id ? { ...a, status: a.status === 'inactive' ? 'active' : 'inactive' } : a
+    ));
   };
 
   const saveEdit = () => {
@@ -618,58 +826,199 @@ function ArchivesView() {
       animate={{ opacity: 1 }}
       className="space-y-4 h-full"
     >
-      <div className="flex justify-between items-center mb-4">
-        <h3 className="text-slate-500 text-sm">共有 {archives.length} 条健康档案数据</h3>
-        <button className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium flex items-center gap-2 transition-transform hover:scale-105 active:scale-95">
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-6">
+        <div className="flex flex-col gap-1">
+          <h3 className="text-slate-500 text-sm font-semibold uppercase tracking-wider">
+            共有 {filteredArchives.length} 条健康档案数据
+          </h3>
+          <div className="flex items-center gap-3 mt-2">
+            <div className="relative group">
+              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
+              <input 
+                type="text" 
+                placeholder="搜索姓名、ID或疾病标签..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-lg text-sm w-64 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-sm"
+              />
+            </div>
+            <div className="flex items-center bg-white border border-slate-200 rounded-lg p-1 shadow-sm">
+              <button 
+                onClick={() => setViewMode('grid')}
+                className={cn(
+                  "p-1.5 rounded transition-all",
+                  viewMode === 'grid' ? "bg-blue-50 text-blue-600 shadow-sm" : "text-slate-400 hover:text-slate-600"
+                )}
+                title="网格视图"
+              >
+                <LayoutGrid size={18} />
+              </button>
+              <button 
+                onClick={() => setViewMode('list')}
+                className={cn(
+                  "p-1.5 rounded transition-all",
+                  viewMode === 'list' ? "bg-blue-50 text-blue-600 shadow-sm" : "text-slate-400 hover:text-slate-600"
+                )}
+                title="列表视图"
+              >
+                <List size={18} />
+              </button>
+            </div>
+          </div>
+        </div>
+        <button className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium flex items-center gap-2 transition-transform hover:scale-105 active:scale-95 shadow-lg shadow-blue-100">
           <Plus size={18} /> 新建档案
         </button>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-        {archives.map((person) => (
-          <div 
-            key={person.id} 
-            className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 flex gap-6 hover:border-blue-400 transition-all hover:shadow-md cursor-pointer group"
-            onClick={() => { setSelectedArchive(person); setIsEditing(false); }}
-          >
-            <div className="w-24 h-24 rounded-xl bg-slate-50 border border-slate-100 flex-shrink-0 flex items-center justify-center text-slate-400 group-hover:bg-blue-50 transition-colors">
-              <UserCircle size={48} />
-            </div>
-            <div className="flex-1">
-              <div className="flex items-center justify-between mb-2">
-                <h4 className="text-xl font-bold text-slate-800">{person.name} <span className="text-sm font-normal text-slate-400 ml-2">{person.age}岁 / {person.gender === 'male' ? '男' : '女'}</span></h4>
-                <div className="px-2 py-1 bg-blue-50 text-blue-600 text-[10px] font-bold rounded">ID: {person.id}</div>
-              </div>
-              <div className="grid grid-cols-2 gap-y-3 mb-4">
-                <div className="text-xs col-span-2">
-                  <span className="text-slate-400">疾病标签:</span> 
-                  <div className="flex flex-wrap gap-1 mt-1.5 font-medium">
-                    {person.conditions.map(c => <span key={c} className="px-2 py-0.5 bg-slate-100 text-slate-600 rounded text-[10px]">{c}</span>)}
-                    {person.conditions.length === 0 && <span className="text-slate-300 italic">暂无标签</span>}
+      {viewMode === 'grid' ? (
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+          {filteredArchives.map((person) => (
+            <div 
+              key={person.id} 
+              className={cn(
+                "bg-white p-6 rounded-xl shadow-sm border transition-all hover:shadow-md cursor-pointer group relative overflow-hidden",
+                person.status === 'inactive' ? "opacity-60 border-slate-200" : "border-slate-200 hover:border-blue-400"
+              )}
+              onClick={() => { setSelectedArchive(person); setIsEditing(false); }}
+            >
+              {person.status === 'inactive' && (
+                <div className="absolute top-2 right-12 px-2 py-0.5 bg-slate-100 text-slate-400 text-[10px] font-bold rounded z-10">
+                  已停用
+                </div>
+              )}
+              <div className="flex gap-6">
+                <div className="w-24 h-24 rounded-xl bg-slate-50 border border-slate-100 flex-shrink-0 flex items-center justify-center text-slate-400 group-hover:bg-blue-50 transition-colors shadow-inner">
+                  <UserCircle size={48} />
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center justify-between mb-2">
+                    <h4 className="text-xl font-bold text-slate-800">{person.name} <span className="text-sm font-normal text-slate-400 ml-2">{person.age}岁 / {person.gender === 'male' ? '男' : '女'}</span></h4>
+                    <div className="px-2 py-1 bg-blue-50 text-blue-600 text-[10px] font-bold rounded">ID: {person.id}</div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-y-3 mb-4">
+                    <div className="text-xs col-span-2">
+                      <span className="text-slate-400 font-medium">疾病标签:</span> 
+                      <div className="flex flex-wrap gap-1 mt-1.5">
+                        {person.conditions.map(c => <span key={c} className="px-2 py-0.5 bg-slate-100 text-slate-600 rounded text-[10px] font-medium">{c}</span>)}
+                        {person.conditions.length === 0 && <span className="text-slate-300 italic">暂无标签</span>}
+                      </div>
+                    </div>
+                    <div className="text-xs">
+                      <span className="text-slate-400 font-medium">主要诊断:</span> 
+                      <span className="ml-2 font-semibold text-slate-700 truncate block mt-1">{person.diagnoses[0] || '暂无临床诊断'}</span>
+                    </div>
+                    <div className="text-xs">
+                      <span className="text-slate-400 font-medium">第一联系人:</span> 
+                      <span className="ml-2 font-semibold text-slate-700 block mt-1 leading-tight">{person.emergencyContacts[0]?.name || '未填'} ({person.emergencyContacts[0]?.phone || '-'})</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between text-xs text-slate-400 pt-3 border-t border-slate-50">
+                    <span className="font-medium">绑定机器人: {MOCK_ROBOTS.find(r => r.id === person.robotId)?.name || '未绑定'}</span>
+                    <div className="flex items-center gap-3">
+                      <button 
+                        onClick={(e) => toggleStatus(person.id, e)}
+                        className={cn(
+                          "flex items-center gap-1.5 px-2 py-1 rounded-lg text-[10px] font-bold transition-all border",
+                          person.status === 'inactive'
+                            ? "bg-green-50 text-green-600 border-green-100 hover:bg-green-100"
+                            : "bg-red-50 text-red-600 border-red-100 hover:bg-red-100"
+                        )}
+                      >
+                        <Power size={12} />
+                        {person.status === 'inactive' ? '启用' : '不启用'}
+                      </button>
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); startEdit(person); }}
+                        className="text-blue-500 font-bold hover:text-blue-600 transition-colors uppercase tracking-tight"
+                      >
+                        编辑档案 →
+                      </button>
+                    </div>
                   </div>
                 </div>
-                <div className="text-xs">
-                  <span className="text-slate-400">主要诊断:</span> 
-                  <span className="ml-2 font-semibold text-slate-700 truncate block mt-1">{person.diagnoses[0] || '暂无临床诊断'}</span>
-                </div>
-                <div className="text-xs">
-                  <span className="text-slate-400">第一联系人:</span> 
-                  <span className="ml-2 font-semibold text-slate-700 block mt-1">{person.emergencyContacts[0]?.name || '未填'} ({person.emergencyContacts[0]?.phone || '-'})</span>
-                </div>
-              </div>
-              <div className="flex items-center justify-between text-xs text-slate-400 pt-3 border-t border-slate-50">
-                <span>绑定机器人: {MOCK_ROBOTS.find(r => r.id === person.robotId)?.name || '未绑定'}</span>
-                <button 
-                  onClick={(e) => { e.stopPropagation(); startEdit(person); }}
-                  className="text-blue-500 font-bold hover:text-blue-600 transition-colors"
-                >
-                  编辑档案 →
-                </button>
               </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      ) : (
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="bg-slate-50/50 border-b border-slate-200">
+                <th className="px-6 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">基本档案</th>
+                <th className="px-6 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">诊断/标签</th>
+                <th className="px-6 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">紧急联系人</th>
+                <th className="px-6 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">机器人</th>
+                <th className="px-6 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest text-right">操作</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {filteredArchives.map((person) => (
+                <tr 
+                  key={person.id} 
+                  className={cn(
+                    "hover:bg-slate-50/50 transition-colors cursor-pointer group",
+                    person.status === 'inactive' ? "opacity-60" : ""
+                  )}
+                  onClick={() => { setSelectedArchive(person); setIsEditing(false); }}
+                >
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-400 group-hover:bg-blue-100 transition-colors">
+                        <UserCircle size={24} />
+                      </div>
+                      <div>
+                        <div className="font-bold text-slate-800">{person.name}</div>
+                        <div className="text-[10px] text-slate-400 font-bold">{person.age}岁 · {person.gender === 'male' ? '男' : '女'}</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="text-[11px] font-semibold text-slate-700 truncate max-w-[150px] mb-1">{person.diagnoses[0] || '-'}</div>
+                    <div className="flex flex-wrap gap-1">
+                      {person.conditions.slice(0, 2).map(c => (
+                        <span key={c} className="px-2 py-0.5 bg-slate-100 text-slate-500 rounded text-[9px] font-bold">{c}</span>
+                      ))}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="text-xs font-bold text-slate-700">{person.emergencyContacts[0]?.name || '-'}</div>
+                    <div className="text-[10px] text-slate-400">{person.emergencyContacts[0]?.phone || '-'}</div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <span className="text-[10px] font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded-md">
+                      {MOCK_ROBOTS.find(r => r.id === person.robotId)?.name || '未绑定'}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 text-right">
+                    <div className="flex items-center justify-end gap-2">
+                       <button 
+                        onClick={(e) => toggleStatus(person.id, e)}
+                        className={cn(
+                          "p-2 rounded-lg transition-colors border shadow-sm",
+                          person.status === 'inactive' ? "text-green-600 bg-white border-green-100 hover:bg-green-50 font-bold text-[10px] uppercase flex items-center gap-1" : "text-red-600 bg-white border-red-100 hover:bg-red-50 font-bold text-[10px] uppercase flex items-center gap-1"
+                        )}
+                        title={person.status === 'inactive' ? '启用' : '不启用'}
+                      >
+                        <Power size={14} />
+                        <span>{person.status === 'inactive' ? '启用' : '不启用'}</span>
+                      </button>
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); startEdit(person); }}
+                        className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors border border-blue-100 bg-white shadow-sm"
+                        title="编辑"
+                      >
+                        <Edit3 size={16} />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       {/* Detail & Edit Modal */}
       {selectedArchive && (
