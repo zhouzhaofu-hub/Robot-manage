@@ -584,12 +584,58 @@ function SmartDeviceMgmtView() {
 }
 
 function RobotMgmtView() {
-  const [robots] = useState<Robot[]>(MOCK_ROBOTS);
+  const [robots, setRobots] = useState<Robot[]>(MOCK_ROBOTS);
   const [filterType, setFilterType] = useState<string>('all');
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedRobot, setSelectedRobot] = useState<Robot | null>(null);
+  const [form, setForm] = useState<Partial<Robot>>({});
 
   const filteredRobots = robots.filter(r => 
     filterType === 'all' || r.institutionType === filterType
   );
+
+  const openModal = (robot?: Robot) => {
+    if (robot) {
+      setSelectedRobot(robot);
+      setForm({ ...robot });
+    } else {
+      setSelectedRobot(null);
+      setForm({
+        name: '',
+        model: 'JH-Alpha V1',
+        sn: '',
+        id: '',
+        institutionType: 'home',
+        institutionName: '',
+        location: '',
+        status: 'online',
+        battery: 100,
+        onboardingMethod: 'auto',
+        lastActive: '刚刚'
+      });
+    }
+    setIsModalOpen(true);
+  };
+
+  const handleSave = () => {
+    if (!form.name || !form.sn || !form.id) {
+      alert('请填写必要的基本信息');
+      return;
+    }
+    
+    if (selectedRobot) {
+      setRobots(prev => prev.map(r => r.id === selectedRobot.id ? (form as Robot) : r));
+    } else {
+      setRobots(prev => [...prev, form as Robot]);
+    }
+    setIsModalOpen(false);
+  };
+
+  const handleDelete = (id: string) => {
+    if (confirm('确认注销并删除此机器人设备？')) {
+      setRobots(prev => prev.filter(r => r.id !== id));
+    }
+  };
 
   return (
     <motion.div 
@@ -625,7 +671,10 @@ function RobotMgmtView() {
           <button className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-lg text-sm font-bold hover:bg-slate-50 shadow-sm transition-all active:scale-95">
             <Package size={18} className="text-indigo-500" /> 批量导入
           </button>
-          <button className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-bold hover:bg-blue-700 shadow-lg shadow-blue-100 transition-all active:scale-95">
+          <button 
+            onClick={() => openModal()}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-bold hover:bg-blue-700 shadow-lg shadow-blue-100 transition-all active:scale-95"
+          >
             <Plus size={18} /> 新增机器人
           </button>
         </div>
@@ -707,19 +756,242 @@ function RobotMgmtView() {
               <button className="flex-1 py-2 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-600 hover:bg-blue-600 hover:text-white hover:border-blue-600 transition-all shadow-sm">
                 作业日志
               </button>
-              <button className="p-2 bg-white border border-slate-200 rounded-lg text-slate-400 hover:text-blue-600 hover:border-blue-200 transition-all shadow-sm">
+              <button 
+                onClick={() => openModal(robot)}
+                className="p-2 bg-white border border-slate-200 rounded-lg text-slate-400 hover:text-blue-600 hover:border-blue-200 transition-all shadow-sm"
+              >
                 <Settings size={14} />
               </button>
             </div>
           </div>
         ))}
-        <div className="border-2 border-dashed border-slate-200 rounded-2xl flex flex-col items-center justify-center p-12 text-slate-400 hover:text-blue-500 hover:border-blue-300 transition-all cursor-pointer bg-slate-50/30 group">
+        <div 
+          onClick={() => openModal()}
+          className="border-2 border-dashed border-slate-200 rounded-2xl flex flex-col items-center justify-center p-12 text-slate-400 hover:text-blue-500 hover:border-blue-300 transition-all cursor-pointer bg-slate-50/30 group"
+        >
           <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center mb-4 group-hover:bg-blue-50 transition-colors">
             <Plus size={32} />
           </div>
           <span className="text-sm font-black uppercase tracking-widest">入网新设备</span>
         </div>
       </div>
+
+      <AnimatePresence>
+        {isModalOpen && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsModalOpen(false)}
+              className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl relative overflow-hidden"
+            >
+              <div className="bg-slate-50 px-6 py-4 border-b border-slate-200 flex justify-between items-center">
+                <h3 className="font-bold text-slate-800">{selectedRobot ? '编辑机器人配置' : '入网新机器人'}</h3>
+                <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-slate-600">
+                  <Plus className="rotate-45" size={24} />
+                </button>
+              </div>
+
+              <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto custom-scrollbar">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* 1. 基础标识 */}
+                  <div className="space-y-6">
+                    <div className="flex items-center gap-2 mb-2">
+                       <div className="w-1 h-4 bg-blue-600 rounded-full"></div>
+                       <h4 className="text-sm font-bold text-slate-800 uppercase tracking-widest">1. 基础标识</h4>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">机器人名称 / 编号</label>
+                      <input
+                        type="text"
+                        value={form.name}
+                        onChange={e => setForm({ ...form, name: e.target.value })}
+                        className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
+                        placeholder="例如: 智护-A08"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">设备型号 / 版本</label>
+                      <select
+                        value={form.model}
+                        onChange={e => setForm({ ...form, model: e.target.value })}
+                        className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
+                      >
+                        <option value="JH-Alpha V1">JH-Alpha V1 (专业版)</option>
+                        <option value="JH-Beta V2">JH-Beta V2 (家庭版)</option>
+                        <option value="JH-Gamma V3">JH-Gamma V3 (旗舰版)</option>
+                      </select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">设备 SN 号</label>
+                      <input
+                        type="text"
+                        value={form.sn}
+                        onChange={e => setForm({ ...form, sn: e.target.value })}
+                        className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all font-mono"
+                        placeholder="JH-SN-XXXX"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">设备 ID</label>
+                      <input
+                        type="text"
+                        value={form.id}
+                        onChange={e => setForm({ ...form, id: e.target.value })}
+                        className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all font-mono"
+                        placeholder="唯一识别码"
+                        disabled={!!selectedRobot}
+                      />
+                    </div>
+                  </div>
+
+                  {/* 2. 归属与位置 */}
+                  <div className="space-y-6">
+                    <div className="flex items-center gap-2 mb-2">
+                       <div className="w-1 h-4 bg-indigo-600 rounded-full"></div>
+                       <h4 className="text-sm font-bold text-slate-800 uppercase tracking-widest">2. 归属与位置</h4>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">归属机构类型</label>
+                      <div className="grid grid-cols-3 gap-2">
+                        {[
+                          { id: 'hospital', label: '医院', icon: <Building2 size={14} /> },
+                          { id: 'community', label: '社区', icon: <Shield size={14} /> },
+                          { id: 'home', label: '家庭', icon: <Home size={14} /> }
+                        ].map(type => (
+                          <button
+                            key={type.id}
+                            onClick={() => setForm({ ...form, institutionType: type.id as any })}
+                            className={cn(
+                              "flex flex-col items-center gap-2 p-3 rounded-xl border text-[10px] font-bold transition-all",
+                              form.institutionType === type.id 
+                                ? "bg-indigo-50 border-indigo-200 text-indigo-600" 
+                                : "bg-white border-slate-100 text-slate-400 hover:bg-slate-50"
+                            )}
+                          >
+                            {type.icon}
+                            {type.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">绑定机构名称</label>
+                      <input
+                        type="text"
+                        value={form.institutionName}
+                        onChange={e => setForm({ ...form, institutionName: e.target.value })}
+                        className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
+                        placeholder="例如: 第九人民医院-神经内科"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">绑定位置 (所属地点)</label>
+                      <div className="relative">
+                        <MapPin size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                        <input
+                          type="text"
+                          value={form.location}
+                          onChange={e => setForm({ ...form, location: e.target.value })}
+                          className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
+                          placeholder="例如: A区-302室"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">入网方式</label>
+                      <select
+                        value={form.onboardingMethod}
+                        onChange={e => setForm({ ...form, onboardingMethod: e.target.value as any })}
+                        className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
+                      >
+                        <option value="auto">WiFi/4G/5G 自动配网</option>
+                        <option value="qrcode">扫码极速绑定</option>
+                        <option value="batch">批量导入授权</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 3. 实时状态预设 */}
+                <div className="pt-4 border-t border-slate-100 grid grid-cols-2 gap-6">
+                   <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">初始状态</label>
+                      <select
+                        value={form.status}
+                        onChange={e => setForm({ ...form, status: e.target.value as any })}
+                        className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs"
+                      >
+                        <option value="online">在线 (就绪)</option>
+                        <option value="offline">离线 (入库)</option>
+                        <option value="standby">待机 (休眠)</option>
+                      </select>
+                   </div>
+                   <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">当前电量</label>
+                      <input
+                        type="range"
+                        min="0"
+                        max="100"
+                        value={form.battery}
+                        onChange={e => setForm({ ...form, battery: parseInt(e.target.value) })}
+                        className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600 mt-3"
+                      />
+                      <div className="flex justify-between text-[10px] font-bold text-slate-400">
+                        <span>0%</span>
+                        <span className="text-blue-600">{form.battery}%</span>
+                        <span>100%</span>
+                      </div>
+                   </div>
+                </div>
+              </div>
+
+              <div className="p-6 bg-slate-50 border-t border-slate-200 flex gap-3">
+                {selectedRobot && (
+                  <button
+                    onClick={() => {
+                      handleDelete(selectedRobot.id);
+                      setIsModalOpen(false);
+                    }}
+                    className="px-6 py-3 bg-white border border-red-100 text-red-500 rounded-xl font-bold hover:bg-red-50 transition-all active:scale-95 shadow-sm mr-auto"
+                  >
+                    注销设备
+                  </button>
+                )}
+                <div className="flex gap-3 flex-1 justify-end">
+                  <button
+                    onClick={() => setIsModalOpen(false)}
+                    className="px-8 py-3 bg-white border border-slate-200 text-slate-600 rounded-xl font-bold hover:bg-slate-100 transition-all active:scale-95 shadow-sm"
+                  >
+                    取消
+                  </button>
+                  <button
+                    onClick={handleSave}
+                    className="px-8 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-all active:scale-95 shadow-lg shadow-blue-100"
+                  >
+                    确认保存
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }
