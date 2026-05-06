@@ -60,7 +60,7 @@ export interface HealthArchive {
 export interface AlertRule {
   id: string;
   level: 'info' | 'warning' | 'critical';
-  event: 'fall' | 'sudden_illness' | 'vital_anomaly';
+  event: 'fall' | 'sudden_illness' | 'vital_anomaly' | 'routine_notice';
   notifyPersons: string[];
   description: string;
 }

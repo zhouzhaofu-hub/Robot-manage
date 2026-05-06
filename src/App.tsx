@@ -31,7 +31,9 @@ import {
   LayoutGrid,
   List,
   Search,
-  Power
+  Power,
+  Info,
+  Bell
 } from 'lucide-react';
 import { 
   motion, 
@@ -174,6 +176,7 @@ const MOCK_ARCHIVES: HealthArchive[] = [
 const MOCK_ALERTS: AlertRule[] = [
   { id: '1', level: 'critical', event: 'fall', notifyPersons: ['子女', '社区物业'], description: '雷达监测跌倒且语音确认无应答' },
   { id: '2', level: 'warning', event: 'vital_anomaly', notifyPersons: ['子女'], description: '静息心率超过100次/分或血氧低于92%' },
+  { id: '3', level: 'info', event: 'routine_notice', notifyPersons: ['子女'], description: '每日定时服药提醒与晨间活动确认' },
 ];
 
 const MOCK_THRESHOLDS: IndicatorThreshold[] = [
@@ -415,6 +418,56 @@ function NavSubGroup({
 // --- Views ---
 
 function TaskMgmtView() {
+  const [tasks, setTasks] = useState<CareTask[]>(MOCK_TASKS);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [currentTask, setCurrentTask] = useState<Partial<CareTask> | null>(null);
+
+  const openModal = (task?: CareTask) => {
+    if (task) {
+      setCurrentTask({ ...task });
+    } else {
+      const now = new Date();
+      const timeStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+      setCurrentTask({
+        id: `T${Date.now()}`,
+        patientName: '',
+        type: 'medication',
+        status: 'pending',
+        scheduledTime: timeStr,
+        robotName: MOCK_ROBOTS[0]?.name || '',
+        content: ''
+      });
+    }
+    setIsModalOpen(true);
+  };
+
+  const handleSave = () => {
+    if (!currentTask?.patientName || !currentTask?.content) {
+      alert('请填写必要信息');
+      return;
+    }
+    const task = currentTask as CareTask;
+    setTasks(prev => {
+      const exists = prev.find(t => t.id === task.id);
+      if (exists) {
+        return prev.map(t => t.id === task.id ? task : t);
+      }
+      return [task, ...prev];
+    });
+    setIsModalOpen(false);
+  };
+
+  const handleDelete = (id: string) => {
+    if (confirm('确认撤销并删除该任务？')) {
+      setTasks(prev => prev.filter(t => t.id !== id));
+    }
+  };
+
+  const toggleStatus = (id: string, currentStatus: string) => {
+    const nextStatus = currentStatus === 'pending' ? 'completed' : 'pending';
+    setTasks(prev => prev.map(t => t.id === id ? { ...t, status: nextStatus as any } : t));
+  };
+
   return (
     <motion.div 
       initial={{ opacity: 0, y: 20 }}
@@ -429,7 +482,10 @@ function TaskMgmtView() {
         </div>
         <div className="flex gap-3">
           <button className="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-200">导出报表</button>
-          <button className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium flex items-center gap-2">
+          <button 
+            onClick={() => openModal()}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium flex items-center gap-2 transition-all active:scale-95 shadow-lg shadow-blue-100 ring-offset-2 focus:ring-2 focus:ring-blue-500"
+          >
             <Plus size={18} /> 手动派发任务
           </button>
         </div>
@@ -448,7 +504,7 @@ function TaskMgmtView() {
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
-            {MOCK_TASKS.map((task) => (
+            {tasks.map((task) => (
               <tr key={task.id} className="hover:bg-slate-50/50 transition-colors group text-sm">
                 <td className="px-6 py-4 font-mono text-slate-500">{task.scheduledTime}</td>
                 <td className="px-6 py-4 font-bold text-slate-700">{task.patientName}</td>
@@ -482,16 +538,32 @@ function TaskMgmtView() {
                 </td>
                 <td className="px-6 py-4 text-right">
                   <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button title="暂停" className="p-1.5 text-slate-400 hover:text-amber-500 hover:bg-amber-50 rounded-lg transition-colors">
-                      <Pause size={16} />
+                    <button 
+                      onClick={() => toggleStatus(task.id, task.status)}
+                      title={task.status === 'pending' ? '标记完成' : '重置为待办'} 
+                      className="p-1.5 text-slate-400 hover:text-amber-500 hover:bg-amber-50 rounded-lg transition-colors"
+                    >
+                      {task.status === 'completed' ? <RotateCcw size={16} /> : <Pause size={16} />}
                     </button>
-                    <button title="编辑" className="p-1.5 text-slate-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-colors">
+                    <button 
+                      onClick={() => openModal(task)}
+                      title="编辑" 
+                      className="p-1.5 text-slate-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-colors"
+                    >
                       <Edit3 size={16} />
                     </button>
-                    <button title="重启" className="p-1.5 text-slate-400 hover:text-indigo-500 hover:bg-indigo-50 rounded-lg transition-colors">
-                      <RotateCcw size={16} />
+                    <button 
+                      onClick={() => setTasks(prev => prev.map(t => t.id === task.id ? { ...t, status: 'pending', scheduledTime: new Date().toISOString().slice(0, 16).replace('T', ' ') } : t))}
+                      title="重启" 
+                      className="p-1.5 text-slate-400 hover:text-indigo-500 hover:bg-indigo-50 rounded-lg transition-colors"
+                    >
+                      <Zap size={16} />
                     </button>
-                    <button title="删除" className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors">
+                    <button 
+                      onClick={() => handleDelete(task.id)}
+                      title="删除" 
+                      className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                    >
                       <Trash2 size={16} />
                     </button>
                   </div>
@@ -501,6 +573,129 @@ function TaskMgmtView() {
           </tbody>
         </table>
       </div>
+
+      <AnimatePresence>
+        {isModalOpen && currentTask && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsModalOpen(false)}
+              className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="bg-white rounded-2xl shadow-2xl w-full max-w-lg relative overflow-hidden"
+            >
+              <div className="bg-slate-50 px-6 py-4 border-b border-slate-200 flex justify-between items-center">
+                <h3 className="font-bold text-slate-800">
+                  {tasks.find(t => t.id === currentTask.id) ? '编辑照护任务' : '手动派发即时任务'}
+                </h3>
+                <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-slate-600">
+                  <Plus className="rotate-45" size={24} />
+                </button>
+              </div>
+
+              <div className="p-6 space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">对象姓名</label>
+                    <input
+                      type="text"
+                      value={currentTask.patientName}
+                      onChange={e => setCurrentTask({ ...currentTask, patientName: e.target.value })}
+                      placeholder="例如: 张大爷"
+                      className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">任务类型</label>
+                    <select
+                      value={currentTask.type}
+                      onChange={e => setCurrentTask({ ...currentTask, type: e.target.value as any })}
+                      className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
+                    >
+                      <option value="medication">用药提醒</option>
+                      <option value="measurement">体征测量</option>
+                      <option value="exercise">康复训练</option>
+                      <option value="routine">日常起居</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">任务执行内容</label>
+                  {currentTask.type === 'measurement' && (
+                    <div className="flex flex-wrap gap-2 mb-3">
+                      {['血压', '血糖', '血氧', '体温', '心率'].map(m => (
+                        <button
+                          key={m}
+                          onClick={() => {
+                            const newContent = `请协助用户完成${m}测量并记录数值。`;
+                            setCurrentTask({ ...currentTask, content: newContent });
+                          }}
+                          className="px-3 py-1.5 bg-indigo-50 text-indigo-600 rounded-lg text-xs font-bold border border-indigo-100 hover:bg-indigo-100 transition-colors"
+                        >
+                          + {m}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  <textarea
+                    rows={3}
+                    value={currentTask.content}
+                    onChange={e => setCurrentTask({ ...currentTask, content: e.target.value })}
+                    placeholder="请输入具体的任务指令内容..."
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all resize-none"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">指定执行机器人</label>
+                    <select
+                      value={currentTask.robotName}
+                      onChange={e => setCurrentTask({ ...currentTask, robotName: e.target.value })}
+                      className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
+                    >
+                      {MOCK_ROBOTS.map(r => (
+                        <option key={r.id} value={r.name}>{r.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">计划执行时间</label>
+                    <input
+                      type="text"
+                      value={currentTask.scheduledTime}
+                      onChange={e => setCurrentTask({ ...currentTask, scheduledTime: e.target.value })}
+                      className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all font-mono"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-6 bg-slate-50 border-t border-slate-200 flex gap-3">
+                <button
+                  onClick={() => setIsModalOpen(false)}
+                  className="flex-1 px-8 py-3 bg-white border border-slate-200 text-slate-600 rounded-xl font-bold hover:bg-slate-100 transition-all active:scale-95 shadow-sm"
+                >
+                  取消
+                </button>
+                <button
+                  onClick={handleSave}
+                  className="flex-1 px-8 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-all active:scale-95 shadow-lg shadow-blue-100"
+                >
+                  确派发任务
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }
@@ -1016,8 +1211,9 @@ function ArchivesView() {
   const [selectedArchive, setSelectedArchive] = useState<HealthArchive | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState<HealthArchive | null>(null);
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
   const [searchQuery, setSearchQuery] = useState('');
+  const [customTagInput, setCustomTagInput] = useState('');
 
   const filteredArchives = archives.filter(a => 
     a.name.includes(searchQuery) || 
@@ -1031,6 +1227,29 @@ function ArchivesView() {
     setSelectedArchive(archive);
   };
 
+  const createNewArchive = () => {
+    const newArchive: HealthArchive = {
+      id: `HA-${Math.floor(Math.random() * 90000) + 10000}`,
+      robotId: MOCK_ROBOTS[0]?.id || '',
+      name: '',
+      gender: 'male',
+      age: 65,
+      bloodType: 'A+',
+      height: 170,
+      weight: 65,
+      conditions: [],
+      diagnoses: [],
+      medications: [],
+      emergencyContacts: [{ name: '', relation: '', phone: '' }],
+      medicalOrders: [],
+      lastExamDate: new Date().toISOString().split('T')[0],
+      status: 'active'
+    };
+    setEditForm(newArchive);
+    setSelectedArchive(newArchive);
+    setIsEditing(true);
+  };
+
   const toggleStatus = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     setArchives(prev => prev.map(a => 
@@ -1040,7 +1259,15 @@ function ArchivesView() {
 
   const saveEdit = () => {
     if (editForm) {
-      setArchives(prev => prev.map(a => a.id === editForm.id ? editForm : a));
+      setArchives(prev => {
+        const index = prev.findIndex(a => a.id === editForm.id);
+        if (index >= 0) {
+          const newArchives = [...prev];
+          newArchives[index] = editForm;
+          return newArchives;
+        }
+        return [editForm, ...prev];
+      });
       setSelectedArchive(editForm);
       setIsEditing(false);
     }
@@ -1057,6 +1284,17 @@ function ArchivesView() {
       ? editForm.conditions.filter(t => t !== tag)
       : [...editForm.conditions, tag];
     setEditForm({ ...editForm, conditions: tags });
+  };
+
+  const addCustomTag = () => {
+    if (!editForm || !customTagInput.trim()) return;
+    if (!editForm.conditions.includes(customTagInput.trim())) {
+      setEditForm({
+        ...editForm,
+        conditions: [...editForm.conditions, customTagInput.trim()]
+      });
+    }
+    setCustomTagInput('');
   };
 
   const addEmergencyContact = () => {
@@ -1138,7 +1376,10 @@ function ArchivesView() {
             </div>
           </div>
         </div>
-        <button className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium flex items-center gap-2 transition-transform hover:scale-105 active:scale-95 shadow-lg shadow-blue-100">
+        <button 
+          onClick={createNewArchive}
+          className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium flex items-center gap-2 transition-transform hover:scale-105 active:scale-95 shadow-lg shadow-blue-100"
+        >
           <Plus size={18} /> 新建档案
         </button>
       </div>
@@ -1332,33 +1573,97 @@ function ArchivesView() {
             </div>
             
             <div className="flex-1 overflow-y-auto p-8 space-y-10 custom-scrollbar">
-              {/* Basic Info (Read Only in this demo for simplicity, or simple inputs) */}
+              {/* Basic Identity Section */}
               <section>
+                <div className="flex items-center gap-2 text-slate-800 mb-6 border-l-4 border-blue-600 pl-4">
+                  <h5 className="font-bold uppercase tracking-widest text-sm text-slate-800">档案基本信息</h5>
+                </div>
+                {isEditing ? (
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                    <div className="space-y-2">
+                       <label className="text-[10px] font-black uppercase text-slate-400 tracking-wider">用户姓名</label>
+                       <input type="text" className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm font-bold" value={editForm?.name} onChange={e => editForm && setEditForm({...editForm, name: e.target.value})} placeholder="输入姓名" />
+                    </div>
+                    <div className="space-y-2">
+                       <label className="text-[10px] font-black uppercase text-slate-400 tracking-wider">年龄</label>
+                       <input type="number" className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm font-bold" value={editForm?.age} onChange={e => editForm && setEditForm({...editForm, age: Number(e.target.value)})} />
+                    </div>
+                    <div className="space-y-2">
+                       <label className="text-[10px] font-black uppercase text-slate-400 tracking-wider">性别</label>
+                       <select className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm font-bold" value={editForm?.gender} onChange={e => editForm && setEditForm({...editForm, gender: e.target.value as any})}>
+                          <option value="male">男</option>
+                          <option value="female">女</option>
+                       </select>
+                    </div>
+                    <div className="space-y-2">
+                       <label className="text-[10px] font-black uppercase text-slate-400 tracking-wider">绑定机器人</label>
+                        <select className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm font-bold" value={editForm?.robotId} onChange={e => editForm && setEditForm({...editForm, robotId: e.target.value})}>
+                          <option value="">未绑定</option>
+                          {MOCK_ROBOTS.map(r => (
+                            <option key={r.id} value={r.id}>{r.name} ({r.sn})</option>
+                          ))}
+                        </select>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-4 gap-4">
+                    <MetricBox label="年龄 / 性别" value={`${selectedArchive.age}岁 / ${selectedArchive.gender === 'male' ? '男' : '女'}`} />
+                    <MetricBox label="绑定机器人" value={MOCK_ROBOTS.find(r => r.id === selectedArchive.robotId)?.name || '未绑定'} />
+                    <MetricBox label="最后体检" value={selectedArchive.lastExamDate} />
+                    <MetricBox label="档案状态" value={selectedArchive.status === 'active' ? '正常' : '已停用'} />
+                  </div>
+                )}
+              </section>
+
+              {/* Health Indicators section */}
+              <section className="pt-6 border-t border-slate-100">
                 <div className="flex items-center gap-2 text-slate-800 mb-6 border-l-4 border-blue-500 pl-4">
-                  <h5 className="font-bold uppercase tracking-widest text-sm">基础健康指标</h5>
+                  <h5 className="font-bold uppercase tracking-widest text-sm">基础体征数据</h5>
                 </div>
                 {isEditing ? (
                   <div className="grid grid-cols-4 gap-6">
                     <div className="space-y-2">
-                       <label className="text-[10px] font-black uppercase text-slate-400 tracking-wider">身高 (cm)</label>
-                       <input type="number" className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm font-bold" value={editForm?.height} onChange={e => editForm && setEditForm({...editForm, height: Number(e.target.value)})} />
+                       <label className="text-[10px] font-black uppercase text-slate-400 tracking-wider">身高</label>
+                       <div className="relative">
+                        <input type="number" className="w-full bg-slate-50 border border-slate-200 rounded-lg pl-3 pr-10 py-2 text-sm font-bold outline-none focus:border-blue-500 transition-all" value={editForm?.height} onChange={e => editForm && setEditForm({...editForm, height: Number(e.target.value)})} />
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-slate-400">cm</span>
+                       </div>
                     </div>
                     <div className="space-y-2">
-                       <label className="text-[10px] font-black uppercase text-slate-400 tracking-wider">体重 (kg)</label>
-                       <input type="number" className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm font-bold" value={editForm?.weight} onChange={e => editForm && setEditForm({...editForm, weight: Number(e.target.value)})} />
+                       <label className="text-[10px] font-black uppercase text-slate-400 tracking-wider">体重</label>
+                       <div className="relative">
+                        <input type="number" className="w-full bg-slate-50 border border-slate-200 rounded-lg pl-3 pr-10 py-2 text-sm font-bold outline-none focus:border-blue-500 transition-all" value={editForm?.weight} onChange={e => editForm && setEditForm({...editForm, weight: Number(e.target.value)})} />
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-slate-400">kg</span>
+                       </div>
                     </div>
                     <div className="space-y-2">
                        <label className="text-[10px] font-black uppercase text-slate-400 tracking-wider">血型</label>
-                       <input type="text" className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm font-bold" value={editForm?.bloodType} onChange={e => editForm && setEditForm({...editForm, bloodType: e.target.value})} />
+                       <select 
+                         className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm font-bold outline-none focus:border-blue-500 transition-all appearance-none cursor-pointer" 
+                         value={editForm?.bloodType} 
+                         onChange={e => editForm && setEditForm({...editForm, bloodType: e.target.value})}
+                       >
+                         {['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map(type => (
+                           <option key={type} value={type}>{type}</option>
+                         ))}
+                       </select>
                     </div>
-                    <MetricBox label="BMI" value={(editForm! && editForm.weight / ((editForm.height/100)**2)).toFixed(1)} />
+                    <MetricBox 
+                      label="BMI" 
+                      value={(editForm! && editForm.weight / ((editForm.height/100)**2)).toFixed(1)} 
+                      info="正常范围: 18.5 - 23.9&#10;偏瘦: < 18.5&#10;超重: 24.0 - 27.9&#10;肥胖: ≥ 28.0"
+                    />
                   </div>
                 ) : (
                   <div className="grid grid-cols-4 gap-4">
                     <MetricBox label="身高" value={`${selectedArchive.height}cm`} />
                     <MetricBox label="体重" value={`${selectedArchive.weight}kg`} />
                     <MetricBox label="血型" value={selectedArchive.bloodType} />
-                    <MetricBox label="BMI" value={(selectedArchive.weight / ((selectedArchive.height/100)**2)).toFixed(1)} />
+                    <MetricBox 
+                      label="BMI" 
+                      value={(selectedArchive.weight / ((selectedArchive.height/100)**2)).toFixed(1)} 
+                      info="正常范围: 18.5 - 23.9&#10;偏瘦: < 18.5&#10;超重: 24.0 - 27.9&#10;肥胖: ≥ 28.0"
+                    />
                   </div>
                 )}
               </section>
@@ -1369,6 +1674,7 @@ function ArchivesView() {
                   <h5 className="font-bold uppercase tracking-widest text-sm">疾病标签 (选择)</h5>
                 </div>
                 <div className="flex flex-wrap gap-2">
+                  {/* Standard predefined tags */}
                   {DISEASE_TAGS.map(tag => {
                     const active = isEditing ? editForm?.conditions.includes(tag) : selectedArchive.conditions.includes(tag);
                     return (
@@ -1387,6 +1693,49 @@ function ArchivesView() {
                       </button>
                     );
                   })}
+                  
+                  {/* Custom tags added by user */}
+                  {isEditing && editForm?.conditions.filter(t => !DISEASE_TAGS.includes(t)).map(tag => (
+                    <button
+                      key={tag}
+                      onClick={() => handleTagToggle(tag)}
+                      className="px-4 py-2 rounded-xl text-xs font-bold bg-indigo-600 text-white border border-indigo-600 shadow-lg shadow-indigo-100 flex items-center gap-1.5 transition-all group"
+                    >
+                      {tag}
+                      <Plus className="rotate-45 opacity-60 group-hover:opacity-100" size={14} />
+                    </button>
+                  ))}
+
+                  {/* Non-editing mode custom tags */}
+                  {!isEditing && selectedArchive.conditions.filter(t => !DISEASE_TAGS.includes(t)).map(tag => (
+                    <div 
+                      key={tag}
+                      className="px-4 py-2 rounded-xl text-xs font-bold bg-slate-100 text-slate-600 border border-slate-200"
+                    >
+                      {tag}
+                    </div>
+                  ))}
+
+                  {/* Add custom tag input */}
+                  {isEditing && (
+                    <div className="flex items-center gap-2 ml-2">
+                      <input
+                        type="text"
+                        placeholder="输入自定义标签..."
+                        value={customTagInput}
+                        onChange={(e) => setCustomTagInput(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && addCustomTag()}
+                        className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs font-bold outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition-all w-32"
+                      />
+                      <button
+                        onClick={addCustomTag}
+                        className="p-2 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100 transition-all border border-indigo-100"
+                        title="添加标签"
+                      >
+                        <PlusCircle size={16} />
+                      </button>
+                    </div>
+                  )}
                 </div>
               </section>
 
@@ -1628,10 +1977,22 @@ function ArchivesView() {
   );
 }
 
-function MetricBox({ label, value }: { label: string, value: string }) {
+function MetricBox({ label, value, info }: { label: string, value: string, info?: string }) {
   return (
-    <div className="p-4 rounded-xl bg-slate-50 text-center border border-slate-200 shadow-sm transition-all hover:bg-white hover:shadow-md cursor-default">
-      <p className="text-[10px] text-slate-400 uppercase font-black tracking-widest mb-1">{label}</p>
+    <div className="p-4 rounded-xl bg-slate-50 text-center border border-slate-200 shadow-sm transition-all hover:bg-white hover:shadow-md cursor-default relative group/metric">
+      <div className="flex items-center justify-center gap-1 mb-1">
+        <p className="text-[10px] text-slate-400 uppercase font-black tracking-widest">{label}</p>
+        {info && (
+          <div className="relative group/tooltip">
+            <Info size={10} className="text-slate-300 hover:text-blue-500 transition-colors cursor-help" />
+            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-3 bg-slate-800 text-white text-[10px] rounded-lg opacity-0 invisible group-hover/tooltip:opacity-100 group-hover/tooltip:visible transition-all z-[110] shadow-xl pointer-events-none">
+              <div className="font-bold border-b border-white/10 pb-1 mb-1 italic">参考值:</div>
+              <div className="whitespace-pre-line leading-relaxed">{info}</div>
+              <div className="absolute top-full left-1/2 -translate-x-1/2 border-[6px] border-transparent border-t-slate-800"></div>
+            </div>
+          </div>
+        )}
+      </div>
       <p className="text-lg font-mono font-bold text-blue-600 leading-none">{value}</p>
     </div>
   );
@@ -1701,28 +2062,37 @@ function AlertsView() {
           <div key={alert.id} className="bg-white rounded-xl p-6 shadow-sm border border-slate-200 relative overflow-hidden group hover:shadow-md transition-shadow">
             <div className={cn(
               "absolute top-0 right-0 px-4 py-1 text-[10px] font-black uppercase text-white rounded-bl-xl shadow-sm",
-              alert.level === 'critical' ? 'bg-red-500' : 'bg-amber-500'
+              alert.level === 'critical' ? 'bg-red-500' : 
+              alert.level === 'warning' ? 'bg-amber-500' : 'bg-blue-500'
             )}>
-              {alert.level === 'critical' ? '紧急 L3' : '警告 L2'}
+              {alert.level === 'critical' ? '紧急 L3' : 
+               alert.level === 'warning' ? '警告 L2' : '提示 L1'}
             </div>
             
             <div className="flex items-center gap-4 mb-6">
               <div className={cn(
                 "w-12 h-12 rounded-2xl flex items-center justify-center shadow-inner",
-                alert.level === 'critical' ? 'bg-red-50' : 'bg-amber-50'
+                alert.level === 'critical' ? 'bg-red-50' : 
+                alert.level === 'warning' ? 'bg-amber-50' : 'bg-blue-50'
               )}>
                 {alert.event === 'fall' ? (
                   <AlertCircle className="text-red-500" />
                 ) : alert.event === 'vital_anomaly' ? (
                   <Activity className="text-amber-500" />
+                ) : alert.event === 'routine_notice' ? (
+                  <Bell className="text-blue-500" />
                 ) : (
-                  <AlertTriangle className={alert.level === 'critical' ? 'text-red-500' : 'text-amber-500'} />
+                  <AlertTriangle className={
+                    alert.level === 'critical' ? 'text-red-500' : 
+                    alert.level === 'warning' ? 'text-amber-500' : 'text-blue-500'
+                  } />
                 )}
               </div>
               <div>
                 <h4 className="font-bold text-slate-800">{
                   alert.event === 'fall' ? '跌倒实时监测' : 
-                  alert.event === 'vital_anomaly' ? '生命体征异常' : alert.event
+                  alert.event === 'vital_anomaly' ? '生命体征异常' : 
+                  alert.event === 'routine_notice' ? '常规照护提醒' : alert.event
                 }</h4>
                 <p className="text-xs text-slate-400">{alert.description}</p>
               </div>
@@ -1818,6 +2188,7 @@ function AlertsView() {
                       onChange={e => setForm({ ...form, level: e.target.value as any })}
                       className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
                     >
+                      <option value="info">普通提示 L1 (Blue)</option>
                       <option value="warning">警告 L2 (Amber)</option>
                       <option value="critical">紧急 L3 (Red)</option>
                     </select>
@@ -1889,6 +2260,51 @@ function AlertsView() {
 }
 
 function ThresholdsView() {
+  const [thresholds, setThresholds] = useState<IndicatorThreshold[]>(MOCK_THRESHOLDS);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
+  const [currentTemplate, setCurrentTemplate] = useState('标准成人');
+
+  const [editingIndicator, setEditingIndicator] = useState<IndicatorThreshold | null>(null);
+  const [editMin, setEditMin] = useState(0);
+  const [editMax, setEditMax] = useState(0);
+
+  const openEditModal = (indicator: IndicatorThreshold) => {
+    setEditingIndicator(indicator);
+    setEditMin(indicator.minVal);
+    setEditMax(indicator.maxVal);
+  };
+
+  const saveIndicatorThreshold = () => {
+    if (editingIndicator) {
+      setThresholds(prev => prev.map(ind => 
+        ind.id === editingIndicator.id ? { ...ind, minVal: editMin, maxVal: editMax } : ind
+      ));
+      setEditingIndicator(null);
+    }
+  };
+
+  const templates = [
+    { name: '标准成人', description: '适用于18-65岁健康成人', count: 12 },
+    { name: '高龄护理', description: '针对75岁以上高龄老人基准', count: 15 },
+    { name: '协和医院实验室指标', description: '北京协和医院临床检验科参考标准', count: 48 },
+  ];
+
+  const handleImport = (source: string) => {
+    if (source === 'UnionHospital') {
+      const unionIndicators: IndicatorThreshold[] = [
+        { id: `u-${Date.now()}-1`, name: '总胆固醇 (TC)', type: 'lab', unit: 'mmol/L', minVal: 2.8, maxVal: 5.18, templateName: '协和医院实验室指标' },
+        { id: `u-${Date.now()}-2`, name: '甘油三酯 (TG)', type: 'lab', unit: 'mmol/L', minVal: 0, maxVal: 1.7, templateName: '协和医院实验室指标' },
+        { id: `u-${Date.now()}-3`, name: '谷丙转氨酶 (ALT)', type: 'lab', unit: 'U/L', minVal: 7, maxVal: 40, templateName: '协和医院实验室指标' },
+        { id: `u-${Date.now()}-4`, name: '血清肌酐 (Scr)', type: 'lab', unit: 'μmol/L', minVal: 44, maxVal: 106, templateName: '协和医院实验室指标' },
+        { id: `u-${Date.now()}-5`, name: '糖化血红蛋白 (HbA1c)', type: 'lab', unit: '%', minVal: 4.0, maxVal: 6.0, templateName: '协和医院实验室指标' },
+      ];
+      setThresholds([...thresholds, ...unionIndicators]);
+      setCurrentTemplate('协和医院实验室指标');
+    }
+    setIsImportModalOpen(false);
+  };
+
   return (
     <motion.div 
       initial={{ opacity: 0 }} 
@@ -1901,16 +2317,32 @@ function ThresholdsView() {
           <p className="text-xs text-slate-400">从模板导入或自定义生命体征、实验室指标基准</p>
         </div>
         <div className="flex gap-3">
-          <button className="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-200 transition-colors">模板管理</button>
-          <button className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium flex items-center gap-2">
-            <Plus size={18} /> 导入指标
+          <button 
+            onClick={() => setIsTemplateModalOpen(true)}
+            className="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-200 transition-colors"
+          >
+            模板管理
           </button>
+          <div className="relative group/import">
+            <button 
+              onClick={() => setIsImportModalOpen(true)}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium flex items-center gap-2 shadow-lg shadow-blue-100 hover:bg-blue-700 transition-all"
+            >
+              <Plus size={18} /> 导入指标
+            </button>
+            {/* Quick dropdown label */}
+            <div className="absolute top-full right-0 mt-2 opacity-0 group-hover/import:opacity-100 transition-opacity pointer-events-none">
+              <div className="bg-slate-800 text-white text-[10px] px-2 py-1 rounded whitespace-nowrap">
+                默认: 协和医院指标
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {MOCK_THRESHOLDS.map((indicator) => (
-          <div key={indicator.id} className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 group">
+        {thresholds.map((indicator) => (
+          <div key={indicator.id} className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 group hover:border-blue-200 transition-all">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
                 <div className={cn(
@@ -1931,12 +2363,233 @@ function ThresholdsView() {
             </div>
             
             <div className="flex items-center justify-between text-xs pt-4 border-t border-slate-50">
-              <span className="text-slate-400">引用模板: <span className="text-slate-700 underline">{indicator.templateName}</span></span>
-              <button className="px-3 py-1 rounded-lg border border-slate-100 hover:border-blue-200 hover:text-blue-600 transition-all">设置阈值</button>
+              <span className="text-slate-400">引用模板: <span className={cn(
+                "font-bold",
+                indicator.templateName?.includes('协和') ? 'text-indigo-600' : 'text-slate-700'
+              )}>{indicator.templateName}</span></span>
+              <button 
+                onClick={() => openEditModal(indicator)}
+                className="px-3 py-1 rounded-lg border border-slate-100 hover:border-blue-200 hover:text-blue-600 transition-all font-medium"
+              >
+                设置阈值
+              </button>
             </div>
           </div>
         ))}
       </div>
+
+      {/* Threshold Edit Modal */}
+      <AnimatePresence>
+        {editingIndicator && (
+          <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setEditingIndicator(null)}
+              className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white rounded-2xl shadow-2xl w-full max-w-sm relative overflow-hidden"
+            >
+              <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                <h3 className="font-bold text-slate-800">设置指标阈值</h3>
+                <button onClick={() => setEditingIndicator(null)} className="text-slate-400 hover:text-slate-600">
+                  <Plus className="rotate-45" size={24} />
+                </button>
+              </div>
+
+              <div className="p-6 space-y-6">
+                <div className="text-center">
+                  <div className="text-xs text-slate-400 uppercase font-black tracking-widest mb-1">正在编辑</div>
+                  <div className="text-lg font-bold text-slate-800">{editingIndicator.name}</div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">正常下限 ({editingIndicator.unit})</label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      value={editMin}
+                      onChange={e => setEditMin(Number(e.target.value))}
+                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all font-mono font-bold"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">正常上限 ({editingIndicator.unit})</label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      value={editMax}
+                      onChange={e => setEditMax(Number(e.target.value))}
+                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all font-mono font-bold"
+                    />
+                  </div>
+                </div>
+
+                {editMin >= editMax && (
+                  <div className="p-3 bg-red-50 text-red-600 text-[10px] rounded-lg font-bold flex items-center gap-2">
+                    <Info size={14} /> 下限不能大于或等于上限
+                  </div>
+                )}
+              </div>
+
+              <div className="p-6 bg-slate-50 border-t border-slate-100 flex gap-3">
+                <button
+                  onClick={() => setEditingIndicator(null)}
+                  className="flex-1 px-4 py-2.5 bg-white border border-slate-200 text-slate-600 rounded-xl font-bold text-sm hover:bg-slate-100 transition-all"
+                >
+                  取消
+                </button>
+                <button
+                  onClick={saveIndicatorThreshold}
+                  disabled={editMin >= editMax}
+                  className="flex-1 px-4 py-2.5 bg-blue-600 text-white rounded-xl font-bold text-sm hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  保存更改
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Import Modal */}
+      <AnimatePresence>
+        {isImportModalOpen && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsImportModalOpen(false)}
+              className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white rounded-2xl shadow-2xl w-full max-w-md relative overflow-hidden"
+            >
+              <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                <h3 className="font-bold text-slate-800 flex items-center gap-2">
+                  <Package className="text-blue-600" size={20} /> 导入标准指标
+                </h3>
+                <button onClick={() => setIsImportModalOpen(false)} className="text-slate-400 hover:text-slate-600 transition-colors">
+                  <Plus className="rotate-45" size={24} />
+                </button>
+              </div>
+              
+              <div className="p-6 space-y-4">
+                <div className="p-4 rounded-xl border-2 border-blue-100 bg-blue-50/30 flex items-center justify-between group cursor-pointer hover:bg-blue-50 transition-colors"
+                  onClick={() => handleImport('UnionHospital')}
+                >
+                  <div>
+                    <h4 className="font-bold text-blue-900 text-sm">北京协和医院实验室指标</h4>
+                    <p className="text-[10px] text-blue-600/70 font-medium">包含：肝功、血脂、肾研、糖耐量等 48 项</p>
+                  </div>
+                  <div className="bg-blue-600 text-white p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Zap size={14} />
+                  </div>
+                </div>
+
+                <div className="p-4 rounded-xl border border-slate-100 bg-white flex items-center justify-between opacity-60 cursor-not-allowed">
+                  <div>
+                    <h4 className="font-medium text-slate-600 text-sm">国家通用卫生标准 (2025)</h4>
+                    <p className="text-[10px] text-slate-400">暂未上线</p>
+                  </div>
+                </div>
+
+                <div className="p-4 rounded-xl border border-slate-100 bg-white flex items-center justify-between opacity-60 cursor-not-allowed">
+                  <div>
+                    <h4 className="font-medium text-slate-600 text-sm">社区居家养老健康基准</h4>
+                    <p className="text-[10px] text-slate-400">暂未上线</p>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="p-6 bg-slate-50 border-t border-slate-100 text-center">
+                <p className="text-[10px] text-slate-400">默认推荐：协和医院标准可覆盖大部分常见中老年慢性病监测需求</p>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Template Mgmt Modal */}
+      <AnimatePresence>
+        {isTemplateModalOpen && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsTemplateModalOpen(false)}
+              className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 20 }}
+              className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl relative overflow-hidden"
+            >
+              <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                <h3 className="font-bold text-slate-800 flex items-center gap-2">
+                  <ShieldCheck className="text-slate-600" size={20} /> 引用模板管理
+                </h3>
+              </div>
+              
+              <div className="p-6 grid grid-cols-1 gap-4">
+                {templates.map(t => (
+                  <div 
+                    key={t.name}
+                    onClick={() => {
+                      setCurrentTemplate(t.name);
+                      // In a real app we would swap thresholds here
+                    }}
+                    className={cn(
+                      "p-5 rounded-xl border-2 transition-all cursor-pointer flex justify-between items-center",
+                      currentTemplate === t.name 
+                        ? "border-blue-600 bg-blue-50/50 shadow-md ring-2 ring-blue-100" 
+                        : "border-slate-100 bg-white hover:border-slate-200"
+                    )}
+                  >
+                    <div>
+                      <div className="flex items-center gap-2 mb-1">
+                        <h4 className={cn("font-bold text-sm", currentTemplate === t.name ? "text-blue-800" : "text-slate-800")}>{t.name}</h4>
+                        {currentTemplate === t.name && (
+                          <span className="bg-blue-600 text-white text-[8px] px-1.5 py-0.5 rounded-full font-black uppercase tracking-tighter">当前使用</span>
+                        )}
+                      </div>
+                      <p className="text-[10px] text-slate-400">{t.description}</p>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-sm font-mono font-bold text-slate-600">{t.count}</div>
+                      <div className="text-[8px] text-slate-400 font-bold uppercase">指标数</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="p-6 bg-slate-50 border-t border-slate-100 flex justify-end gap-3">
+                <button 
+                  onClick={() => setIsTemplateModalOpen(false)}
+                  className="px-6 py-2 bg-white border border-slate-200 text-slate-600 rounded-lg text-sm font-bold hover:bg-slate-100 transition-all"
+                >
+                  关闭
+                </button>
+                <button className="px-6 py-2 bg-blue-600 text-white rounded-lg text-sm font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-100">
+                  新建自定义模板
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }
