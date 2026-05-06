@@ -220,43 +220,43 @@ export default function App() {
         <nav className="flex-1 py-4 space-y-2 px-3 overflow-y-auto custom-scrollbar">
           <NavSubGroup 
             icon={<Shield size={18} />} 
-            label="精细化看护" 
+            label="健康照护中心" 
             id="care" 
             isOpen={expandedGroups.includes('care')} 
             onToggle={() => toggleGroup('care')}
             collapsed={!sidebarOpen}
           >
             <NavItem label="健康档案管理" id="archives" active={activeTab === 'archives'} onClick={() => setActiveTab('archives')} collapsed={!sidebarOpen} />
-            <NavItem label="计划任务管理" id="tasks" active={activeTab === 'tasks'} onClick={() => setActiveTab('tasks')} collapsed={!sidebarOpen} />
+            <NavItem label="照护任务计划" id="tasks" active={activeTab === 'tasks'} onClick={() => setActiveTab('tasks')} collapsed={!sidebarOpen} />
           </NavSubGroup>
 
           <NavSubGroup 
             icon={<Cpu size={18} />} 
-            label="物联设备网" 
+            label="智能设备管理中心" 
             id="device" 
             isOpen={expandedGroups.includes('device')} 
             onToggle={() => toggleGroup('device')}
             collapsed={!sidebarOpen}
           >
-            <NavItem label="智能设备管理" id="devices" active={activeTab === 'devices'} onClick={() => setActiveTab('devices')} collapsed={!sidebarOpen} />
+            <NavItem label="健康监测设备管理" id="devices" active={activeTab === 'devices'} onClick={() => setActiveTab('devices')} collapsed={!sidebarOpen} />
             <NavItem label="机器人管理" id="robots" active={activeTab === 'robots'} onClick={() => setActiveTab('robots')} collapsed={!sidebarOpen} />
           </NavSubGroup>
 
           <NavSubGroup 
             icon={<Settings size={18} />} 
-            label="策略与规则" 
+            label="系统规则配置中心" 
             id="config" 
             isOpen={expandedGroups.includes('config')} 
             onToggle={() => toggleGroup('config')}
             collapsed={!sidebarOpen}
           >
-            <NavItem label="预警规则管理" id="alerts" active={activeTab === 'alerts'} onClick={() => setActiveTab('alerts')} collapsed={!sidebarOpen} />
-            <NavItem label="指标阈值管理" id="thresholds" active={activeTab === 'thresholds'} onClick={() => setActiveTab('thresholds')} collapsed={!sidebarOpen} />
+            <NavItem label="异常预警规则设置" id="alerts" active={activeTab === 'alerts'} onClick={() => setActiveTab('alerts')} collapsed={!sidebarOpen} />
+            <NavItem label="健康指标标准设置" id="thresholds" active={activeTab === 'thresholds'} onClick={() => setActiveTab('thresholds')} collapsed={!sidebarOpen} />
           </NavSubGroup>
 
           {sidebarOpen && (
             <div className="pt-4 mt-4 border-t border-slate-800/50">
-              <div className="text-[10px] text-slate-500 font-bold px-3 py-2 uppercase tracking-widest">外部跳转</div>
+              <div className="text-[10px] text-slate-500 font-bold px-3 py-2 uppercase tracking-widest">系统快捷入口</div>
               <a 
                 href="#" 
                 className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-slate-400 hover:bg-slate-800 hover:text-slate-200 transition-all"
@@ -270,7 +270,7 @@ export default function App() {
                 className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-slate-400 hover:bg-slate-800 hover:text-slate-200 transition-all"
               >
                 <Library size={18} />
-                <span>医疗知识库</span>
+                <span>健康知识库</span>
                 <ExternalLink size={12} className="ml-auto opacity-40" />
               </a>
             </div>
@@ -301,11 +301,11 @@ export default function App() {
             <span className="text-slate-300">/</span>
             <span className="text-slate-900 font-bold">
               {activeTab === 'archives' && '健康档案管理'}
-              {activeTab === 'devices' && '智能设备管理'}
+              {activeTab === 'devices' && '健康监测设备管理'}
               {activeTab === 'robots' && '机器人管理'}
-              {activeTab === 'tasks' && '计划任务管理'}
-              {activeTab === 'alerts' && '预警规则管理'}
-              {activeTab === 'thresholds' && '指标阈值管理'}
+              {activeTab === 'tasks' && '照护任务计划'}
+              {activeTab === 'alerts' && '异常预警规则设置'}
+              {activeTab === 'thresholds' && '健康指标标准设置'}
             </span>
           </div>
           <div className="flex items-center gap-6">
@@ -424,7 +424,7 @@ function TaskMgmtView() {
     >
       <div className="flex justify-between items-center bg-white p-6 rounded-xl shadow-sm border border-slate-200">
         <div>
-          <h3 className="font-bold text-lg text-slate-800">实时计划任务</h3>
+          <h3 className="font-bold text-lg text-slate-800">实时照护任务计划</h3>
           <p className="text-xs text-slate-400">基于医嘱生成的自动化看护任务执行状态</p>
         </div>
         <div className="flex gap-3">
@@ -515,7 +515,7 @@ function SmartDeviceMgmtView() {
     >
       <div className="flex justify-between items-center mb-2">
         <div className="flex items-center gap-4">
-          <h3 className="font-bold text-lg">全屋智能传感器与外设</h3>
+          <h3 className="font-bold text-lg">健康监测设备管理</h3>
           <div className="flex gap-2">
             <span className="flex items-center gap-1 text-[10px] px-2 py-0.5 bg-green-50 text-green-600 rounded-full font-bold">4 在线</span>
             <span className="flex items-center gap-1 text-[10px] px-2 py-0.5 bg-red-50 text-red-600 rounded-full font-bold">1 离线</span>
@@ -1625,7 +1625,7 @@ function ThresholdsView() {
     >
       <div className="flex justify-between items-center bg-white p-6 rounded-xl shadow-sm border border-slate-200">
         <div>
-          <h3 className="font-bold text-lg text-slate-800">指标阈值库</h3>
+          <h3 className="font-bold text-lg text-slate-800">健康指标标准设置</h3>
           <p className="text-xs text-slate-400">从模板导入或自定义生命体征、实验室指标基准</p>
         </div>
         <div className="flex gap-3">
