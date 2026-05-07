@@ -111,3 +111,39 @@ export interface SmartDevice {
     mode: string;
   };
 }
+
+export interface RehabGuidance {
+  id: string;
+  category: 'medication' | 'nursing' | 'followup' | 'exercise' | 'diet';
+  diseaseType: string;
+  title: string;
+  content: string;
+  frequency?: string;
+  targetAudience: string;
+  isEnabled: boolean;
+  updatedAt: string;
+}
+
+export interface SecurityEvent {
+  id: string;
+  type: 'fall' | 'vital_anomaly' | 'environment' | 'button' | 'sudden_illness';
+  patientName: string;
+  location: string;
+  time: string;
+  status: 'active' | 'processing' | 'resolved';
+  description: string;
+  deviceId?: string;
+}
+
+export interface NotificationRecord {
+  id: string;
+  eventId: string;
+  recipient: string;
+  relation: string;
+  method: 'phone' | 'app' | 'sms' | 'speaker';
+  level: 'L1' | 'L2' | 'L3';
+  sentTime: string;
+  confirmed: boolean;
+  confirmTime?: string;
+  remark?: string;
+}

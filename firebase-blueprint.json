@@ -1,0 +1,207 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile with roles",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "role": { "type": "string", "enum": ["admin", "doctor", "nurse"] },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["uid", "email", "role", "createdAt"]
+    },
+    "CareTask": {
+      "title": "CareTask",
+      "description": "Daily care tasks",
+      "type": "object",
+      "properties": {
+        "patientName": { "type": "string" },
+        "type": { "type": "string", "enum": ["medication", "measurement", "exercise", "emotion"] },
+        "status": { "type": "string", "enum": ["pending", "completed", "failed"] },
+        "scheduledTime": { "type": "string" },
+        "robotName": { "type": "string" },
+        "content": { "type": "string" },
+        "enabled": { "type": "boolean" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["patientName", "type", "status", "scheduledTime", "robotName", "content", "enabled"]
+    },
+    "SmartDevice": {
+      "title": "SmartDevice",
+      "description": "Registered devices",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "type": { "type": "string", "enum": ["sensor", "gateway", "camera", "scale", "blood_pressure"] },
+        "status": { "type": "string", "enum": ["online", "offline"] },
+        "enabled": { "type": "boolean" },
+        "lastSync": { "type": "string" },
+        "battery": { "type": "number" },
+        "sn": { "type": "string" },
+        "robotId": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["name", "type", "status", "enabled", "lastSync"]
+    },
+    "HealthArchive": {
+      "title": "HealthArchive",
+      "description": "Patient health records",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "age": { "type": "number" },
+        "gender": { "type": "string", "enum": ["male", "female"] },
+        "conditions": { "type": "array" },
+        "diagnoses": { "type": "array" },
+        "robotId": { "type": "string" },
+        "emergencyContacts": { "type": "array" },
+        "status": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["name", "age", "gender", "conditions", "diagnoses", "status"]
+    },
+    "RehabGuidance": {
+      "title": "RehabGuidance",
+      "description": "Rehabilitation instructions",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "diseaseType": { "type": "string" },
+        "category": { "type": "string", "enum": ["medication", "nursing", "followup", "exercise", "diet"] },
+        "content": { "type": "string" },
+        "frequency": { "type": "string" },
+        "targetAudience": { "type": "string" },
+        "updatedAt": { "type": "string" },
+        "isEnabled": { "type": "boolean" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["title", "diseaseType", "category", "content", "frequency", "targetAudience", "updatedAt", "isEnabled"]
+    },
+    "Robot": {
+      "title": "Robot",
+      "description": "Robot device",
+      "type": "object",
+      "properties": {
+        "sn": { "type": "string" },
+        "name": { "type": "string" },
+        "model": { "type": "string" },
+        "status": { "type": "string", "enum": ["online", "offline", "error", "standby", "working"] },
+        "enabled": { "type": "boolean" },
+        "battery": { "type": "number" },
+        "location": { "type": "string" },
+        "institutionType": { "type": "string", "enum": ["hospital", "community", "home"] },
+        "institutionName": { "type": "string" },
+        "onboardingMethod": { "type": "string", "enum": ["auto", "qrcode", "batch"] },
+        "lastActive": { "type": "string" }
+      },
+      "required": ["sn", "name", "model", "status", "enabled", "battery", "location", "institutionType", "institutionName", "onboardingMethod", "lastActive"]
+    },
+    "AlertRule": {
+      "title": "AlertRule",
+      "description": "System alert rules",
+      "type": "object",
+      "properties": {
+        "level": { "type": "string", "enum": ["info", "warning", "critical"] },
+        "event": { "type": "string", "enum": ["fall", "sudden_illness", "vital_anomaly", "routine_notice"] },
+        "notifyPersons": { "type": "array" },
+        "description": { "type": "string" },
+        "enabled": { "type": "boolean" }
+      },
+      "required": ["level", "event", "notifyPersons", "description", "enabled"]
+    },
+    "IndicatorThreshold": {
+      "title": "IndicatorThreshold",
+      "description": "Health indicator thresholds",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "type": { "type": "string", "enum": ["vital", "lab"] },
+        "unit": { "type": "string" },
+        "minVal": { "type": "number" },
+        "maxVal": { "type": "number" },
+        "templateName": { "type": "string" },
+        "enabled": { "type": "boolean" }
+      },
+      "required": ["name", "type", "unit", "minVal", "maxVal", "enabled"]
+    },
+    "SecurityEvent": {
+      "title": "SecurityEvent",
+      "description": "Security and health events",
+      "type": "object",
+      "properties": {
+        "type": { "type": "string", "enum": ["fall", "vital_anomaly", "environment", "button", "sudden_illness"] },
+        "patientName": { "type": "string" },
+        "location": { "type": "string" },
+        "time": { "type": "string" },
+        "status": { "type": "string", "enum": ["active", "processing", "resolved"] },
+        "description": { "type": "string" },
+        "deviceId": { "type": "string" }
+      },
+      "required": ["type", "patientName", "location", "time", "status", "description"]
+    },
+    "NotificationRecord": {
+      "title": "NotificationRecord",
+      "description": "Notification history",
+      "type": "object",
+      "properties": {
+        "eventId": { "type": "string" },
+        "recipient": { "type": "string" },
+        "relation": { "type": "string" },
+        "method": { "type": "string", "enum": ["phone", "app", "sms", "speaker"] },
+        "level": { "type": "string", "enum": ["L1", "L2", "L3"] },
+        "sentTime": { "type": "string" },
+        "confirmed": { "type": "boolean" },
+        "confirmTime": { "type": "string" },
+        "remark": { "type": "string" }
+      },
+      "required": ["eventId", "recipient", "relation", "method", "level", "sentTime", "confirmed"]
+    }
+  },
+  "firestore": {
+    "users/{userId}": {
+      "schema": "User",
+      "description": "User profiles and roles"
+    },
+    "tasks/{taskId}": {
+      "schema": "CareTask",
+      "description": "Care tasks"
+    },
+    "devices/{deviceId}": {
+      "schema": "SmartDevice",
+      "description": "Hardware devices"
+    },
+    "archives/{archiveId}": {
+      "schema": "HealthArchive",
+      "description": "Patient archives"
+    },
+    "guidances/{guidanceId}": {
+      "schema": "RehabGuidance",
+      "description": "Rehabilitation guidances"
+    },
+    "robots/{robotId}": {
+      "schema": "Robot",
+      "description": "Robot management"
+    },
+    "alerts/{alertId}": {
+      "schema": "AlertRule",
+      "description": "System alert rules"
+    },
+    "thresholds/{thresholdId}": {
+      "schema": "IndicatorThreshold",
+      "description": "Indicator thresholds"
+    },
+    "security_events/{eventId}": {
+      "schema": "SecurityEvent",
+      "description": "Security events"
+    },
+    "notifications/{notificationId}": {
+      "schema": "NotificationRecord",
+      "description": "Notification records"
+    }
+  }
+}

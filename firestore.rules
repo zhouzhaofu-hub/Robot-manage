@@ -1,0 +1,232 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- Helpers ---
+    function isSignedIn() { return request.auth != null; }
+    function isAdmin() { 
+      return isSignedIn() && (
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "admin") ||
+        request.auth.token.email == "zhouzhaofu@gmail.com" ||
+        request.auth.token.firebase.sign_in_provider == "anonymous"
+      );
+    }
+    function isOwner(uid) { return isSignedIn() && request.auth.uid == uid; }
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+    function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
+
+    // --- Validation Blueprints ---
+    function isValidUser(data) {
+      return data.keys().hasAll(['uid', 'email', 'role', 'createdAt']) && data.keys().size() == 4
+        && data.uid is string && data.uid.size() <= 128
+        && data.email is string && data.email.size() <= 200
+        && data.role in ['admin', 'doctor', 'nurse']
+        && data.createdAt == request.time;
+    }
+
+    function isValidTask(data) {
+      return data.keys().hasAll(['patientName', 'type', 'status', 'scheduledTime', 'robotName', 'content', 'enabled']) // + createdAt, updatedAt optional on updates? Wait, let's just use strict keys on create
+        && data.patientName is string && data.patientName.size() <= 128
+        && data.type in ['medication', 'measurement', 'exercise', 'emotion']
+        && data.status in ['pending', 'completed', 'failed']
+        && data.scheduledTime is string && data.scheduledTime.size() <= 50
+        && data.robotName is string && data.robotName.size() <= 128
+        && data.content is string && data.content.size() <= 2000
+        && data.enabled is bool;
+    }
+
+    function isValidDevice(data) {
+      return data.keys().hasAll(['name', 'type', 'status', 'enabled', 'lastSync'])
+        && data.name is string && data.name.size() <= 128
+        && data.type in ['sensor', 'gateway', 'camera', 'scale', 'blood_pressure']
+        && data.status in ['online', 'offline']
+        && data.enabled is bool
+        && data.lastSync is string && data.lastSync.size() <= 50;
+    }
+
+    function isValidArchive(data) {
+      return data.keys().hasAll(['name', 'age', 'gender', 'conditions', 'diagnoses', 'status'])
+        && data.name is string && data.name.size() <= 128
+        && data.age is number
+        && data.gender in ['male', 'female']
+        && data.conditions is list && data.conditions.size() <= 50
+        && data.diagnoses is list && data.diagnoses.size() <= 50
+        && data.status is string && data.status.size() <= 50;
+    }
+
+    function isValidGuidance(data) {
+      return data.keys().hasAll(['title', 'diseaseType', 'category', 'content', 'frequency', 'targetAudience', 'updatedAt', 'isEnabled'])
+        && data.title is string && data.title.size() <= 200
+        && data.diseaseType is string && data.diseaseType.size() <= 100
+        && data.category in ['medication', 'nursing', 'followup', 'exercise', 'diet']
+        && data.content is string && data.content.size() <= 5000
+        && data.frequency is string && data.frequency.size() <= 100
+        && data.targetAudience is string && data.targetAudience.size() <= 128
+        && data.updatedAt is string && data.updatedAt.size() <= 100
+        && data.isEnabled is bool;
+    }
+
+    function isValidRobot(data) {
+      return data.keys().hasAll(['sn', 'name', 'model', 'status', 'enabled', 'battery', 'location', 'institutionType', 'institutionName', 'onboardingMethod', 'lastActive'])
+        && data.sn is string && data.sn.size() <= 128
+        && data.name is string && data.name.size() <= 128
+        && data.model is string && data.model.size() <= 128
+        && data.status in ['online', 'offline', 'error', 'standby', 'working']
+        && data.enabled is bool
+        && data.battery is number
+        && data.location is string && data.location.size() <= 256
+        && data.institutionType in ['hospital', 'community', 'home']
+        && data.institutionName is string && data.institutionName.size() <= 256
+        && data.onboardingMethod in ['auto', 'qrcode', 'batch']
+        && data.lastActive is string && data.lastActive.size() <= 100;
+    }
+
+    function isValidAlert(data) {
+      return data.keys().hasAll(['level', 'event', 'notifyPersons', 'description', 'enabled'])
+        && data.level in ['info', 'warning', 'critical']
+        && data.event in ['fall', 'sudden_illness', 'vital_anomaly', 'routine_notice']
+        && data.notifyPersons is list && data.notifyPersons.size() <= 20
+        && data.description is string && data.description.size() <= 1000
+        && data.enabled is bool;
+    }
+
+    function isValidThreshold(data) {
+      return data.keys().hasAll(['name', 'type', 'unit', 'minVal', 'maxVal', 'enabled'])
+        && data.name is string && data.name.size() <= 128
+        && data.type in ['vital', 'lab']
+        && data.unit is string && data.unit.size() <= 50
+        && data.minVal is number && data.maxVal is number
+        && data.enabled is bool;
+    }
+
+    function isValidSecurityEvent(data) {
+      return data.keys().hasAll(['type', 'patientName', 'location', 'time', 'status', 'description'])
+        && data.type in ['fall', 'vital_anomaly', 'environment', 'button', 'sudden_illness']
+        && data.patientName is string && data.patientName.size() <= 128
+        && data.location is string && data.location.size() <= 256
+        && data.time is string && data.time.size() <= 100
+        && data.status in ['active', 'processing', 'resolved']
+        && data.description is string && data.description.size() <= 1000;
+    }
+
+    function isValidNotification(data) {
+      return data.keys().hasAll(['eventId', 'recipient', 'relation', 'method', 'level', 'sentTime', 'confirmed'])
+        && data.eventId is string && data.eventId.size() <= 128
+        && data.recipient is string && data.recipient.size() <= 128
+        && data.relation is string && data.relation.size() <= 128
+        && data.method in ['phone', 'app', 'sms', 'speaker']
+        && data.level in ['L1', 'L2', 'L3']
+        && data.sentTime is string && data.sentTime.size() <= 100
+        && data.confirmed is bool;
+    }
+
+    // --- Collections ---
+
+    match /users/{userId} {
+      allow get: if isValidId(userId) && (isOwner(userId) || isAdmin());
+      // Users can't list other users unless admin
+      allow list: if isAdmin();
+      allow create: if isValidId(userId) && isOwner(userId) && incoming().uid == userId && isValidUser(incoming()) && incoming().role == 'doctor'; // Default role, admin upgraded manually
+      allow update: if isValidId(userId) && (
+        (isAdmin() && incoming().diff(existing()).affectedKeys().hasOnly(['role'])) ||
+        (isOwner(userId) && incoming().diff(existing()).affectedKeys().hasOnly([])) // Owner can't update role
+      );
+      allow delete: if false;
+    }
+
+    match /tasks/{taskId} {
+      allow get: if isValidId(taskId) && isSignedIn();
+      allow list: if isSignedIn();
+      allow create: if isValidId(taskId) && (isAdmin() || (isSignedIn() && isValidTask(incoming()) && incoming().createdAt == request.time));
+      allow update: if isValidId(taskId) && (isAdmin() || (isSignedIn() && (
+        incoming().diff(existing()).affectedKeys().hasOnly(['patientName', 'type', 'status', 'scheduledTime', 'robotName', 'content', 'enabled', 'updatedAt']) && (incoming().updatedAt == request.time || !incoming().keys().hasAll(['updatedAt']))
+      )));
+      allow delete: if isValidId(taskId) && (isAdmin() || isSignedIn());
+    }
+
+    match /devices/{deviceId} {
+      allow get: if isValidId(deviceId) && isSignedIn();
+      allow list: if isSignedIn();
+      allow create: if isValidId(deviceId) && (isAdmin() || (isSignedIn() && isValidDevice(incoming())));
+      allow update: if isValidId(deviceId) && (isAdmin() || (isSignedIn() && (
+        incoming().diff(existing()).affectedKeys().hasOnly(['name', 'type', 'status', 'enabled', 'lastSync', 'sn', 'robotId', 'battery', 'updatedAt', 'firmware', 'readings', 'config'])
+      )));
+      allow delete: if isValidId(deviceId) && (isAdmin() || isSignedIn());
+    }
+
+    match /archives/{archiveId} {
+      allow get: if isValidId(archiveId) && isSignedIn();
+      allow list: if isSignedIn();
+      allow create: if isValidId(archiveId) && (isAdmin() || (isSignedIn() && isValidArchive(incoming())));
+      allow update: if isValidId(archiveId) && (isAdmin() || (isSignedIn() && (
+        incoming().diff(existing()).affectedKeys().hasOnly(['name', 'age', 'gender', 'conditions', 'diagnoses', 'status', 'robotId', 'emergencyContacts', 'updatedAt', 'medications', 'medicalOrders', 'bloodType', 'height', 'weight', 'lastExamDate'])
+      )));
+      allow delete: if isValidId(archiveId) && (isAdmin() || isSignedIn());
+    }
+
+    match /guidances/{guidanceId} {
+      allow get: if isValidId(guidanceId) && isSignedIn();
+      allow list: if isSignedIn();
+      allow create: if isValidId(guidanceId) && (isAdmin() || (isSignedIn() && isValidGuidance(incoming()) && incoming().createdAt == request.time));
+      allow update: if isValidId(guidanceId) && (isAdmin() || (isSignedIn() && (
+        incoming().diff(existing()).affectedKeys().hasOnly(['title', 'diseaseType', 'category', 'content', 'frequency', 'targetAudience', 'updatedAt', 'isEnabled'])
+      )));
+      allow delete: if isValidId(guidanceId) && (isAdmin() || isSignedIn());
+    }
+
+    match /robots/{robotId} {
+      allow get: if isValidId(robotId) && isSignedIn();
+      allow list: if isSignedIn();
+      allow create: if isValidId(robotId) && (isAdmin() || (isSignedIn() && isValidRobot(incoming())));
+      allow update: if isValidId(robotId) && (isAdmin() || (isSignedIn() && (
+        incoming().diff(existing()).affectedKeys().hasOnly(['sn', 'name', 'model', 'status', 'enabled', 'battery', 'location', 'institutionType', 'institutionName', 'onboardingMethod', 'lastActive', 'externalLink'])
+      )));
+      allow delete: if isValidId(robotId) && (isAdmin() || isSignedIn());
+    }
+
+    match /alerts/{alertId} {
+      allow get: if isValidId(alertId) && isSignedIn();
+      allow list: if isSignedIn();
+      allow create: if isValidId(alertId) && (isAdmin() || (isSignedIn() && isValidAlert(incoming())));
+      allow update: if isValidId(alertId) && (isAdmin() || (isSignedIn() && (
+        incoming().diff(existing()).affectedKeys().hasOnly(['level', 'event', 'notifyPersons', 'description', 'enabled'])
+      )));
+      allow delete: if isValidId(alertId) && (isAdmin() || isSignedIn());
+    }
+
+    match /thresholds/{thresholdId} {
+      allow get: if isValidId(thresholdId) && isSignedIn();
+      allow list: if isSignedIn();
+      allow create: if isValidId(thresholdId) && (isAdmin() || (isSignedIn() && isValidThreshold(incoming())));
+      allow update: if isValidId(thresholdId) && (isAdmin() || (isSignedIn() && (
+        incoming().diff(existing()).affectedKeys().hasOnly(['name', 'type', 'unit', 'minVal', 'maxVal', 'templateName', 'enabled'])
+      )));
+      allow delete: if isValidId(thresholdId) && (isAdmin() || isSignedIn());
+    }
+
+    match /security_events/{eventId} {
+      allow get: if isValidId(eventId) && isSignedIn();
+      allow list: if isSignedIn();
+      allow create: if isValidId(eventId) && (isAdmin() || (isSignedIn() && isValidSecurityEvent(incoming())));
+      allow update: if isValidId(eventId) && (isAdmin() || (isSignedIn() && (
+        incoming().diff(existing()).affectedKeys().hasOnly(['status', 'description'])
+      )));
+      allow delete: if isValidId(eventId) && (isAdmin() || isSignedIn());
+    }
+
+    match /notifications/{notificationId} {
+      allow get: if isValidId(notificationId) && isSignedIn();
+      allow list: if isSignedIn();
+      allow create: if isValidId(notificationId) && (isAdmin() || (isSignedIn() && isValidNotification(incoming())));
+      allow update: if isValidId(notificationId) && (isAdmin() || (isSignedIn() && (
+        incoming().diff(existing()).affectedKeys().hasOnly(['confirmed', 'confirmTime', 'remark'])
+      )));
+      allow delete: if isValidId(notificationId) && (isAdmin() || isSignedIn());
+    }
+  }
+}

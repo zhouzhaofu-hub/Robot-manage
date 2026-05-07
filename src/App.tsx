@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Bot, 
   UserCircle, 
@@ -33,14 +33,36 @@ import {
   Search,
   Power,
   Info,
-  Bell
+  Bell,
+  MessageSquare,
+  ShieldAlert,
+  History,
+  CheckCircle,
+  XCircle,
+  Volume2,
+  Smartphone as Phone,
+  Mail,
+  User,
+  MoreVertical,
+  Radar,
+  Pill,
+  HeartPulse,
+  Stethoscope,
+  Dumbbell,
+  Utensils,
+  Upload,
+  Download,
+  LogOut
 } from 'lucide-react';
 import { 
   motion, 
   AnimatePresence 
 } from 'motion/react';
 import { cn } from './lib/utils';
-import { Robot, HealthArchive, AlertRule, IndicatorThreshold, CareTask, SmartDevice, MedicalOrder } from './types';
+import { Robot, HealthArchive, AlertRule, IndicatorThreshold, CareTask, SmartDevice, MedicalOrder, SecurityEvent, NotificationRecord, RehabGuidance } from './types';
+import { useAuth } from './lib/AuthContext';
+import { db, handleFirestoreError, OperationType } from './lib/firebase';
+import { collection, onSnapshot, doc, setDoc, deleteDoc, query, where, Timestamp } from 'firebase/firestore';
 import { 
   ClipboardList,
   Cpu,
@@ -61,216 +83,22 @@ import {
   Home
 } from 'lucide-react';
 
-// Mock Data Constants
-const DISEASE_TAGS = ['高血压', '糖尿病', '冠心病', '高血脂', '心律不齐', '阿尔兹海默症', '帕金森', '哮喘'];
-const COMMON_DIAGNOSES = ['原发性高血压', '2型糖尿病', '骨质疏松', '慢性阻塞性肺疾病', '白内障', '类风湿性关节炎'];
-
-const MOCK_TASKS: CareTask[] = [
-  { id: 'T1', patientName: '张大爷', type: 'medication', status: 'pending', scheduledTime: '2026-04-20 10:30', robotName: '智护-A01', content: '口服氨氯地平 5mg', enabled: true },
-  { id: 'T2', patientName: '李奶奶', type: 'measurement', status: 'completed', scheduledTime: '2026-04-20 09:00', robotName: '智护-A02', content: '餐后血糖测量', enabled: true },
-  { id: 'T3', patientName: '张大爷', type: 'exercise', status: 'failed', scheduledTime: '2026-04-20 08:30', robotName: '智护-A01', content: '坐站平衡训练', enabled: true },
-];
-
-const MOCK_DEVICES: SmartDevice[] = [
-  { 
-    id: 'D1', 
-    name: '客厅毫米波雷达', 
-    type: 'sensor', 
-    status: 'online', 
-    enabled: true, 
-    lastSync: '1分钟前', 
-    battery: 92,
-    sn: 'SN-RADAR-001',
-    robotId: '1',
-    firmware: 'v2.4.1',
-    readings: [
-      { time: '10:00', value: '1', unit: '人' },
-      { time: '10:05', value: '1', unit: '人' },
-      { time: '10:10', value: '0', unit: '人' },
-      { time: '10:15', value: '1', unit: '人' },
-    ],
-    config: { reportingInterval: 5, sensitivity: '高', mode: '实时监测' }
-  },
-  { 
-    id: 'D2', 
-    name: '智能网关-A1', 
-    type: 'gateway', 
-    status: 'online', 
-    enabled: true, 
-    lastSync: '实时',
-    sn: 'SN-GW-882',
-    robotId: '1',
-    firmware: 'v5.0.2',
-    config: { reportingInterval: 1, sensitivity: '中', mode: '网关模式' }
-  },
-  { 
-    id: 'D3', 
-    name: '卧室高清摄像头', 
-    type: 'camera', 
-    status: 'offline', 
-    enabled: true, 
-    lastSync: '1小时前',
-    sn: 'SN-CAM-991',
-    robotId: '2',
-    firmware: 'v1.2.0',
-    config: { reportingInterval: 0, sensitivity: '智能', mode: '移动侦测' }
-  },
-  { 
-    id: 'D4', 
-    name: '蓝牙体重秤', 
-    type: 'scale', 
-    status: 'online', 
-    enabled: false, 
-    lastSync: '昨日', 
-    battery: 15,
-    sn: 'SN-SCALE-332',
-    robotId: '2',
-    firmware: 'v1.0.1',
-    readings: [
-      { time: '昨日 08:00', value: '72.5', unit: 'kg' },
-      { time: '04-18 08:30', value: '72.8', unit: 'kg' },
-    ],
-    config: { reportingInterval: 0, sensitivity: '高', mode: '自动同步' }
-  },
-  { 
-    id: 'D5', 
-    name: '欧姆龙血压计', 
-    type: 'blood_pressure', 
-    status: 'online', 
-    enabled: true, 
-    lastSync: '3小时前',
-    sn: 'SN-BP-112',
-    robotId: '1',
-    firmware: 'v3.1.4',
-    readings: [
-      { time: '14:00', value: '120/80', unit: 'mmHg' },
-      { time: '前日 15:30', value: '125/82', unit: 'mmHg' },
-    ],
-    config: { reportingInterval: 0, sensitivity: '医疗级', mode: '双人模式' }
-  },
-];
-
-const MOCK_ROBOTS: Robot[] = [
-  { 
-    id: '1', 
-    sn: 'JH-SN-8801', 
-    name: '智护-A01', 
-    model: 'JH-Alpha V1',
-    status: 'online', 
-    enabled: true,
-    battery: 85, 
-    location: '张大爷家-客厅', 
-    institutionType: 'home', 
-    institutionName: '张大爷家中',
-    onboardingMethod: 'auto',
-    lastActive: '1分钟前' 
-  },
-  { 
-    id: '2', 
-    sn: 'JH-SN-8802', 
-    name: '智护-A02', 
-    model: 'JH-Alpha V1',
-    status: 'working', 
-    enabled: true,
-    battery: 42, 
-    location: '康复中心-走廊', 
-    institutionType: 'hospital', 
-    institutionName: '中心医院康复科',
-    onboardingMethod: 'batch',
-    lastActive: '实时' 
-  },
-  { 
-    id: '3', 
-    sn: 'JH-SN-9201', 
-    name: '智护-B05', 
-    model: 'JH-Beta V2',
-    status: 'error', 
-    enabled: false,
-    battery: 12, 
-    location: '社区站-充电位', 
-    institutionType: 'community', 
-    institutionName: '幸福里社区站点',
-    onboardingMethod: 'qrcode',
-    lastActive: '2小时前' 
-  },
-];
-
-const MOCK_ARCHIVES: HealthArchive[] = [
-  { 
-    id: '1', 
-    robotId: '1', 
-    name: '张大爷', 
-    gender: 'male', 
-    age: 78, 
-    bloodType: 'A+', 
-    height: 172, 
-    weight: 68, 
-    conditions: ['高血压', '糖尿病'],
-    diagnoses: ['原发性高血压 III级', '2型糖尿病 (稳定期)'],
-    medications: [
-      { name: '氨氯地平', dosage: '5mg', frequency: '1次/日' },
-      { name: '二甲双胍', dosage: '0.5g', frequency: '2次/日' }
-    ],
-    emergencyContacts: [
-      { name: '张远', relation: '长子', phone: '13812345678' },
-      { name: '居委会小王', relation: '社区网格员', phone: '13566667777' }
-    ],
-    medicalOrders: [
-      { id: 'O1', type: 'medication', content: '规律服用降压药', frequency: '每日早8点' },
-      { id: 'O2', type: 'checkup', content: '心电图复查', frequency: '每季度一次' }
-    ],
-    lastExamDate: '2026-03-20',
-    status: 'active'
-  },
-  { 
-    id: '2', 
-    robotId: '2', 
-    name: '李奶奶', 
-    gender: 'female', 
-    age: 82, 
-    bloodType: 'O', 
-    height: 158, 
-    weight: 52, 
-    conditions: ['心律不齐'],
-    diagnoses: ['阵发性心房颤动', '双膝骨关节炎'],
-    medications: [
-      { name: '阿司匹林', dosage: '100mg', frequency: '1次/日' }
-    ],
-    emergencyContacts: [
-      { name: '李梅', relation: '女儿', phone: '13987654321' }
-    ],
-    medicalOrders: [
-      { id: 'O3', type: 'rehab', content: '膝关节屈伸训练', frequency: '每日两次' }
-    ],
-    lastExamDate: '2026-04-05',
-    status: 'active'
-  }
-];
-
-const MOCK_ALERTS: AlertRule[] = [
-  // L3: 跌倒、突发疾病
-  { id: '1', level: 'critical', event: 'fall', notifyPersons: ['长子', '社区网格员'], description: '雷达监测到老人跌倒，语音交互无应答，已启动紧急预案', enabled: true },
-  { id: '2', level: 'critical', event: 'sudden_illness', notifyPersons: ['女儿', '120急救'], description: '监测到突发性剧烈疼痛报警，疑似急性心脏病发作', enabled: true },
-  { id: '3', level: 'critical', event: 'sudden_illness', notifyPersons: ['老伴', '社区医院'], description: '红外光电传感器监测到意识水平下降，生命体征波动剧烈', enabled: true },
-  
-  // L2: 特殊指标超过阈值
-  { id: '4', level: 'warning', event: 'vital_anomaly', notifyPersons: ['子女'], description: '收缩压超过160mmHg，持续3次测量未见下降', enabled: true },
-  { id: '5', level: 'warning', event: 'vital_anomaly', notifyPersons: ['医生'], description: '静息心率超过110次/分，触发长期房颤监测预警', enabled: true },
-  { id: '6', level: 'warning', event: 'vital_anomaly', notifyPersons: ['子女', '医生'], description: '血氧饱和度持续低于90%，建议立即进行吸氧处理', enabled: true },
-  
-  // L1: 常规任务完成情况
-  { id: '7', level: 'info', event: 'routine_notice', notifyPersons: ['子女'], description: '早晨8:00降压药服用任务已按时完成', enabled: true },
-  { id: '8', level: 'info', event: 'routine_notice', notifyPersons: ['长子'], description: '康复训练目标（每日3000步）已于16:00提前达成', enabled: true },
-  { id: '9', level: 'info', event: 'routine_notice', notifyPersons: ['家人'], description: '晚间睡前洗漱及环境安防检查任务已完成确认', enabled: true },
-];
-
-const MOCK_THRESHOLDS: IndicatorThreshold[] = [
-  { id: '1', name: '收缩压(SBP)', type: 'vital', unit: 'mmHg', minVal: 90, maxVal: 140, templateName: '标准成人', enabled: true },
-  { id: '2', name: '空腹血糖', type: 'lab', unit: 'mmol/L', minVal: 3.9, maxVal: 6.1, templateName: '标准成人', enabled: true },
-  { id: '3', name: '静息心率', type: 'vital', unit: '次/分', minVal: 60, maxVal: 100, templateName: '标准成人', enabled: true },
-];
+import { 
+  MOCK_TASKS, 
+  MOCK_DEVICES, 
+  MOCK_ROBOTS, 
+  MOCK_ARCHIVES, 
+  MOCK_ALERTS, 
+  MOCK_SECURITY_EVENTS, 
+  MOCK_NOTIFICATIONS, 
+  MOCK_REHAB_GUIDANCE, 
+  MOCK_THRESHOLDS,
+  DISEASE_TAGS,
+  COMMON_DIAGNOSES
+} from './mocks';
 
 export default function App() {
+  const { user, loading, error, signIn, signInAnon, devLogin, logOut, clearError, initTestData } = useAuth();
   const [activeTab, setActiveTab] = useState('archives');
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [expandedGroups, setExpandedGroups] = useState<string[]>(['care', 'device', 'config']);
@@ -280,6 +108,59 @@ export default function App() {
       prev.includes(groupId) ? prev.filter(g => g !== groupId) : [...prev, groupId]
     );
   };
+
+  if (loading) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-slate-50">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-slate-50">
+        <div className="bg-white p-8 rounded-3xl shadow-xl max-w-sm w-full text-center">
+          <div className="w-16 h-16 bg-blue-100 rounded-2xl flex items-center justify-center mx-auto mb-6">
+            <HeartPulse className="text-blue-600" size={32} />
+          </div>
+          <h2 className="text-2xl font-black text-slate-800 mb-2">长者健康管理系统</h2>
+          <p className="text-sm font-medium text-slate-500 mb-8">请登录以继续访问后台管理系统</p>
+          
+          {error && (
+            <div className="mb-6 p-4 bg-red-50 border border-red-100 rounded-xl text-xs text-red-600 text-left relative">
+              <div className="font-bold mb-1">登录错误:</div>
+              {error}
+              <button 
+                onClick={clearError}
+                className="absolute top-2 right-2 text-red-400 hover:text-red-600"
+              >
+                关闭
+              </button>
+            </div>
+          )}
+
+          <div className="space-y-3">
+            <button 
+              onClick={signIn}
+              className="w-full bg-blue-600 text-white font-bold py-3 rounded-xl hover:bg-blue-700 transition shadow-lg shadow-blue-200"
+            >
+              Google 账号登录
+            </button>
+            <button 
+              onClick={signInAnon}
+              className="w-full bg-slate-900 text-white font-bold py-3 rounded-xl hover:bg-black transition shadow-lg"
+            >
+              🚀 管理员模式登录 (完整权限)
+            </button>
+            <p className="text-[10px] text-slate-400 text-center px-4">
+              注意：管理员模式需要 Firebase 开启 "Anonymous" 认证。如未开启，请先使用 Google 登录。
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-screen bg-slate-50 text-slate-800 font-sans overflow-hidden">
@@ -317,6 +198,7 @@ export default function App() {
           >
             <NavItem label="健康档案管理" id="archives" active={activeTab === 'archives'} onClick={() => setActiveTab('archives')} collapsed={!sidebarOpen} />
             <NavItem label="照护任务计划" id="tasks" active={activeTab === 'tasks'} onClick={() => setActiveTab('tasks')} collapsed={!sidebarOpen} />
+            <NavItem label="消息通知管理" id="notifications" active={activeTab === 'notifications'} onClick={() => setActiveTab('notifications')} collapsed={!sidebarOpen} />
           </NavSubGroup>
 
           <NavSubGroup 
@@ -340,6 +222,7 @@ export default function App() {
             collapsed={!sidebarOpen}
           >
             <NavItem label="异常预警规则设置" id="alerts" active={activeTab === 'alerts'} onClick={() => setActiveTab('alerts')} collapsed={!sidebarOpen} />
+            <NavItem label="慢病康复运动管理" id="rehab" active={activeTab === 'rehab'} onClick={() => setActiveTab('rehab')} collapsed={!sidebarOpen} />
             <NavItem label="健康指标标准设置" id="thresholds" active={activeTab === 'thresholds'} onClick={() => setActiveTab('thresholds')} collapsed={!sidebarOpen} />
           </NavSubGroup>
 
@@ -368,9 +251,65 @@ export default function App() {
 
         <div className="p-4 border-t border-slate-800">
           {sidebarOpen && (
+            <div className="mb-4">
+              <button 
+                onClick={logOut}
+                className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-red-400 hover:bg-slate-800 hover:text-red-300 transition-all"
+              >
+                <Power size={18} />
+                <span>退出登录</span>
+              </button>
+            </div>
+          )}
+          {sidebarOpen && (
+            <div className="mb-4">
+              <button 
+                onClick={async () => {
+                   if (confirm("这会导入模拟数据到 Firebase 中，确定吗？")) {
+                      try {
+                        for (const g of MOCK_REHAB_GUIDANCE) {
+                          await setDoc(doc(db, 'guidances', g.id), g);
+                        }
+                        for (const g of MOCK_TASKS) {
+                          await setDoc(doc(db, 'tasks', g.id), g);
+                        }
+                        for (const g of MOCK_ARCHIVES) {
+                          await setDoc(doc(db, 'archives', g.id), g);
+                        }
+                        for (const g of MOCK_DEVICES) {
+                          await setDoc(doc(db, 'devices', g.id), g);
+                        }
+                        for (const g of MOCK_ALERTS) {
+                          await setDoc(doc(db, 'alerts', g.id), g);
+                        }
+                        for (const g of MOCK_ROBOTS) {
+                          await setDoc(doc(db, 'robots', g.id), g);
+                        }
+                        for (const g of MOCK_THRESHOLDS) {
+                          await setDoc(doc(db, 'thresholds', g.id), g);
+                        }
+                        for (const g of MOCK_SECURITY_EVENTS) {
+                          await setDoc(doc(db, 'security_events', g.id), g);
+                        }
+                        for (const g of MOCK_NOTIFICATIONS) {
+                          await setDoc(doc(db, 'notifications', g.id), g);
+                        }
+                        alert("导入成功！");
+                      } catch (e) {
+                         alert("导入失败 " + String(e));
+                      }
+                   }
+                }}
+                className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-bold text-slate-500 hover:bg-slate-800 hover:text-slate-300 transition-all border border-slate-700"
+              >
+                <span>初始化/恢复测试数据</span>
+              </button>
+            </div>
+          )}
+          {sidebarOpen && (
             <div className="mb-4 px-3 text-[10px] text-slate-500 uppercase tracking-widest leading-loose">
+              <div className="flex justify-between"><span>当前账号</span><span className="text-slate-400 truncate max-w-[100px]" title={user?.email || ''}>{user?.email?.split('@')[0]}</span></div>
               <div className="flex justify-between"><span>版本号</span><span className="text-slate-400">v1.0.2</span></div>
-              <div className="flex justify-between"><span>发布日期</span><span className="text-slate-400">2026-04-18</span></div>
             </div>
           )}
           <button 
@@ -389,24 +328,34 @@ export default function App() {
             <span className="text-slate-400">工作台</span>
             <span className="text-slate-300">/</span>
             <span className="text-slate-900 font-bold">
-              {activeTab === 'archives' && '健康档案管理'}
-              {activeTab === 'devices' && '健康监测设备管理'}
-              {activeTab === 'robots' && '机器人管理'}
-              {activeTab === 'tasks' && '照护任务计划'}
-              {activeTab === 'alerts' && '异常预警规则设置'}
-              {activeTab === 'thresholds' && '健康指标标准设置'}
+              {activeTab === 'archives' && '📂 健康档案管理'}
+              {activeTab === 'devices' && '🌡️ 健康监测设备管理'}
+              {activeTab === 'robots' && '🤖 机器人管理'}
+              {activeTab === 'tasks' && '📋 照护任务计划'}
+              {activeTab === 'notifications' && '🔔 消息通知管理'}
+              {activeTab === 'alerts' && '⚠️ 异常预警规则设置'}
+              {activeTab === 'rehab' && '💪 慢病康复运动管理'}
+              {activeTab === 'thresholds' && '📏 健康指标标准设置'}
             </span>
+
+            <button 
+              onClick={initTestData}
+              className="ml-4 px-4 py-1.5 bg-amber-50 text-amber-700 text-xs font-black rounded-full border border-amber-200 hover:bg-amber-100 transition-colors flex items-center gap-2 shadow-sm"
+            >
+              <Zap size={14} className="fill-amber-500 text-amber-500" />
+              快速填充系统测试数据
+            </button>
           </div>
           <div className="flex items-center gap-6">
             <div className="flex items-center gap-2 text-xs">
               <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-              <span className="text-slate-600 font-medium">看护引擎运行中</span>
+              <span className="text-slate-600 font-medium">看护引擎运行中 · 管理员模式</span>
             </div>
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-full bg-slate-200 border border-slate-300 flex items-center justify-center text-slate-600 font-bold text-xs shadow-inner">
-                Z
+            <div className="flex items-center gap-2 group cursor-pointer" onClick={logOut}>
+              <div className="w-8 h-8 rounded-full bg-slate-200 border border-slate-300 flex items-center justify-center text-slate-600 font-bold text-xs shadow-inner group-hover:bg-red-50 group-hover:text-red-600 group-hover:border-red-200 transition-all">
+                <LogOut size={14} />
               </div>
-              <span className="text-sm font-semibold text-slate-700">管理员 张三</span>
+              <span className="text-sm font-semibold text-slate-700 group-hover:text-red-600 transition-colors">退出系统</span>
             </div>
           </div>
         </header>
@@ -414,10 +363,12 @@ export default function App() {
         <div className="flex-1 overflow-y-auto p-8">
           <AnimatePresence mode="wait">
             {activeTab === 'tasks' && <TaskMgmtView key="tasks" />}
+            {activeTab === 'notifications' && <NotificationsView key="notifications" />}
             {activeTab === 'devices' && <SmartDeviceMgmtView key="devices" />}
             {activeTab === 'robots' && <RobotMgmtView key="robots" />}
             {activeTab === 'archives' && <ArchivesView key="archives" />}
             {activeTab === 'alerts' && <AlertsView key="alerts" />}
+            {activeTab === 'rehab' && <RehabGuidanceView key="rehab" />}
             {activeTab === 'thresholds' && <ThresholdsView key="thresholds" />}
           </AnimatePresence>
         </div>
@@ -525,13 +476,27 @@ function Toggle({ enabled, onToggle }: { enabled: boolean; onToggle: () => void 
 // --- Views ---
 
 function TaskMgmtView() {
-  const [tasks, setTasks] = useState<CareTask[]>(MOCK_TASKS);
+  const [tasks, setTasks] = useState<CareTask[]>([]);
+  useEffect(() => {
+    const q = query(collection(db, 'tasks'));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as CareTask));
+      setTasks(data);
+    }, (error) => handleFirestoreError(error, OperationType.LIST, 'tasks'));
+    return () => unsubscribe();
+  }, []);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentTask, setCurrentTask] = useState<Partial<CareTask> | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
 
-  const toggleTaskEnabled = (id: string) => {
-    setTasks(prev => prev.map(t => t.id === id ? { ...t, enabled: !t.enabled } : t));
+  const toggleTaskEnabled = async (id: string) => {
+    const task = tasks.find(t => t.id === id);
+    if (!task) return;
+    try {
+      await setDoc(doc(db, 'tasks', id), { enabled: !task.enabled }, { merge: true });
+    } catch (e) {
+      handleFirestoreError(e, OperationType.UPDATE, `tasks/${id}`);
+    }
   };
 
   const filteredTasks = tasks.filter(t => 
@@ -561,31 +526,37 @@ function TaskMgmtView() {
     setIsModalOpen(true);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!currentTask?.patientName || !currentTask?.content) {
       alert('请填写必要信息');
       return;
     }
     const task = currentTask as CareTask;
-    setTasks(prev => {
-      const exists = prev.find(t => t.id === task.id);
-      if (exists) {
-        return prev.map(t => t.id === task.id ? task : t);
-      }
-      return [task, ...prev];
-    });
-    setIsModalOpen(false);
-  };
-
-  const handleDelete = (id: string) => {
-    if (confirm('确认撤销并删除该任务？')) {
-      setTasks(prev => prev.filter(t => t.id !== id));
+    try {
+      await setDoc(doc(db, 'tasks', task.id), { ...task, createdAt: Timestamp.now(), updatedAt: Timestamp.now() }, { merge: true });
+      setIsModalOpen(false);
+    } catch (e) {
+      handleFirestoreError(e, OperationType.WRITE, `tasks/${task.id}`);
     }
   };
 
-  const toggleStatus = (id: string, currentStatus: string) => {
+  const handleDelete = async (id: string) => {
+    if (confirm('确认撤销并删除该任务？')) {
+      try {
+        await deleteDoc(doc(db, 'tasks', id));
+      } catch (e) {
+        handleFirestoreError(e, OperationType.DELETE, `tasks/${id}`);
+      }
+    }
+  };
+
+  const toggleStatus = async (id: string, currentStatus: string) => {
     const nextStatus = currentStatus === 'pending' ? 'completed' : 'pending';
-    setTasks(prev => prev.map(t => t.id === id ? { ...t, status: nextStatus as any } : t));
+    try {
+       await setDoc(doc(db, 'tasks', id), { status: nextStatus, updatedAt: Timestamp.now() }, { merge: true });
+    } catch (e) {
+       handleFirestoreError(e, OperationType.UPDATE, `tasks/${id}`);
+    }
   };
 
   return (
@@ -845,7 +816,15 @@ function TaskMgmtView() {
 
 function SmartDeviceMgmtView() {
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
-  const [devices, setDevices] = useState<SmartDevice[]>(MOCK_DEVICES);
+  const [devices, setDevices] = useState<SmartDevice[]>([]);
+  useEffect(() => {
+    const q = query(collection(db, 'devices'));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as SmartDevice));
+      setDevices(data);
+    }, (error) => handleFirestoreError(error, OperationType.LIST, 'devices'));
+    return () => unsubscribe();
+  }, []);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedDevice, setSelectedDevice] = useState<SmartDevice | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
@@ -857,7 +836,7 @@ function SmartDeviceMgmtView() {
     robotId: MOCK_ROBOTS[0]?.id || ''
   });
 
-  const handleAddDevice = () => {
+  const handleAddDevice = async () => {
     const newDevice: SmartDevice = {
       id: `D${Date.now()}`,
       name: addForm.name || '新设备',
@@ -871,13 +850,23 @@ function SmartDeviceMgmtView() {
       firmware: 'v1.0.0',
       config: { reportingInterval: 5, sensitivity: '中', mode: '标准模式' }
     };
-    setDevices([newDevice, ...devices]);
-    setIsAddModalOpen(false);
-    setAddForm({ name: '', type: 'sensor', sn: '', robotId: MOCK_ROBOTS[0]?.id || '' });
+    try {
+      await setDoc(doc(db, 'devices', newDevice.id), { ...newDevice, createdAt: Timestamp.now(), updatedAt: Timestamp.now() });
+      setIsAddModalOpen(false);
+      setAddForm({ name: '', type: 'sensor', sn: '', robotId: MOCK_ROBOTS[0]?.id || '' });
+    } catch (e) {
+      handleFirestoreError(e, OperationType.WRITE, `devices/${newDevice.id}`);
+    }
   };
 
-  const toggleDeviceEnabled = (id: string) => {
-    setDevices(prev => prev.map(d => d.id === id ? { ...d, enabled: !d.enabled } : d));
+  const toggleDeviceEnabled = async (id: string) => {
+    const device = devices.find(d => d.id === id);
+    if (!device) return;
+    try {
+      await setDoc(doc(db, 'devices', id), { enabled: !device.enabled }, { merge: true });
+    } catch(e) {
+      handleFirestoreError(e, OperationType.UPDATE, `devices/${id}`);
+    }
   };
 
   const filteredDevices = devices.filter(d => 
@@ -1382,8 +1371,675 @@ function SmartDeviceMgmtView() {
   );
 }
 
+function NotificationsView() {
+  const [expandedEventId, setExpandedEventId] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const filteredEvents = MOCK_SECURITY_EVENTS.filter(e => 
+    e.patientName.includes(searchQuery) || 
+    e.description.includes(searchQuery) ||
+    e.location.includes(searchQuery)
+  );
+
+  const getEventNotifications = (eventId: string) => {
+    return MOCK_NOTIFICATIONS.filter(n => n.eventId === eventId);
+  };
+
+  return (
+    <motion.div 
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -10 }}
+      className="space-y-6"
+    >
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h2 className="text-2xl font-black text-slate-800 tracking-tight">安全事件与通知流水</h2>
+          <p className="text-slate-500 text-sm font-medium">全链路告警触达与闭环确认记录</p>
+        </div>
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+          <input 
+            type="text"
+            placeholder="搜索人员、事件或地点..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 w-64 shadow-sm"
+          />
+        </div>
+      </div>
+
+      <div className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm">
+        <table className="w-full text-left border-collapse">
+          <thead>
+            <tr className="bg-slate-50 border-b border-slate-200">
+              <th className="w-12 px-6 py-4"></th>
+              <th className="px-6 py-4 text-xs font-black text-slate-400 uppercase tracking-widest">事件类型</th>
+              <th className="px-6 py-4 text-xs font-black text-slate-400 uppercase tracking-widest text-center">关联人员</th>
+              <th className="px-6 py-4 text-xs font-black text-slate-400 uppercase tracking-widest text-center">发生地点</th>
+              <th className="px-6 py-4 text-xs font-black text-slate-400 uppercase tracking-widest text-center">发生时间</th>
+              <th className="px-6 py-4 text-xs font-black text-slate-400 uppercase tracking-widest text-center">处理状态</th>
+              <th className="px-6 py-4 text-xs font-black text-slate-400 uppercase tracking-widest">主记录摘要</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100">
+            {filteredEvents.map((event) => {
+              const notifications = getEventNotifications(event.id);
+              const isExpanded = expandedEventId === event.id;
+              
+              return (
+                <React.Fragment key={event.id}>
+                  <tr 
+                    onClick={() => setExpandedEventId(isExpanded ? null : event.id)}
+                    className={cn(
+                      "hover:bg-blue-50/30 transition-colors cursor-pointer group",
+                      isExpanded && "bg-blue-50/50"
+                    )}
+                  >
+                    <td className="px-6 py-4 text-center">
+                      <ChevronRight 
+                        size={16} 
+                        className={cn("text-slate-400 transition-transform", isExpanded && "rotate-90 text-blue-600")} 
+                      />
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className={cn(
+                          "w-10 h-10 rounded-2xl flex items-center justify-center shadow-inner",
+                          event.type === 'fall' ? 'bg-red-50 text-red-600' : 
+                          event.type === 'vital_anomaly' ? 'bg-orange-50 text-orange-600' : 'bg-blue-50 text-blue-600'
+                        )}>
+                          {event.type === 'fall' ? <ShieldAlert size={20} /> : <AlertCircle size={20} />}
+                        </div>
+                        <span className="text-sm font-bold text-slate-700">
+                          {event.type === 'fall' ? '跌倒事件' : 
+                           event.type === 'vital_anomaly' ? '体征异常' : 
+                           event.type === 'environment' ? '环境告警' : '手动报警'}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 text-center">
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-slate-100 text-slate-600 rounded-full text-xs font-bold">
+                        <User size={12} /> {event.patientName}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-center">
+                      <span className="text-sm font-medium text-slate-500">{event.location}</span>
+                    </td>
+                    <td className="px-6 py-4 text-center">
+                      <div className="flex flex-col">
+                        <span className="text-sm font-bold text-slate-700">{event.time.split(' ')[1]}</span>
+                        <span className="text-[10px] font-medium text-slate-400 uppercase tracking-tighter">{event.time.split(' ')[0]}</span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 text-center">
+                      <span className={cn(
+                        "px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border",
+                        event.status === 'active' ? "bg-red-600 text-white border-red-600 shadow-lg shadow-red-200 animate-pulse" : 
+                        event.status === 'processing' ? "bg-blue-50 text-blue-600 border-blue-100" : "bg-green-50 text-green-600 border-green-100"
+                      )}>
+                        {event.status === 'active' ? '待处理' : event.status === 'processing' ? '处理中' : '已归档'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <p className="text-xs text-slate-500 border-l-2 border-slate-200 pl-3 italic">{event.description}</p>
+                    </td>
+                  </tr>
+
+                  {/* 子记录列表 - 通知流水 */}
+                  {isExpanded && (
+                    <tr className="bg-slate-50/50">
+                      <td colSpan={7} className="px-12 py-6">
+                        {event.type === 'fall' && (
+                          <div className="mb-6 grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in slide-in-from-top-1 duration-500">
+                            <div className="bg-red-50/50 p-4 rounded-2xl border border-red-100">
+                              <h6 className="text-[10px] font-black text-red-600 uppercase tracking-widest mb-3 flex items-center gap-2">
+                                <Radar size={14} /> 触发监测设备详情
+                              </h6>
+                              <div className="flex items-center gap-4">
+                                <div className="w-12 h-12 rounded-xl bg-white flex items-center justify-center text-red-600 shadow-sm border border-red-100">
+                                  <Activity size={24} />
+                                </div>
+                                <div>
+                                  <p className="text-sm font-bold text-slate-800">毫米波雷达感应器</p>
+                                  <p className="text-[10px] text-slate-400 font-medium font-mono uppercase tracking-tighter">设备编号: {event.deviceId || 'RADAR-UNK'}</p>
+                                  <div className="mt-1 flex items-center gap-2">
+                                    <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                                    <span className="text-[9px] text-green-600 font-bold uppercase tracking-widest">设备在线</span>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                            <div className="bg-green-50/50 p-4 rounded-2xl border border-green-100">
+                              <h6 className="text-[10px] font-black text-green-600 uppercase tracking-widest mb-3 flex items-center gap-2">
+                                <History size={14} /> 实时处置记录
+                              </h6>
+                              <ul className="space-y-2">
+                                <li className="text-[11px] text-slate-600 flex items-center gap-2">
+                                  <CheckCircle size={10} className="text-green-500" /> <span className="font-mono text-[10px] font-bold text-slate-400">10:30:02</span> 监测到人体姿态异常，判定为跌倒事件
+                                </li>
+                                <li className="text-[11px] text-slate-600 flex items-center gap-2">
+                                  <CheckCircle size={10} className="text-green-500" /> <span className="font-mono text-[10px] font-bold text-slate-400">10:30:05</span> 智能话箱启动音频交互：“请问您还好吗？”，用户确认无应答
+                                </li>
+                                <li className="text-[11px] text-slate-600 flex items-center gap-2">
+                                  <CheckCircle size={10} className="text-green-500" /> <span className="font-mono text-[10px] font-bold text-slate-400">10:30:10</span> 自动通过消息网关触发 L3 级告警策略
+                                </li>
+                              </ul>
+                            </div>
+                          </div>
+                        )}
+
+                        <div className="bg-white rounded-2xl border border-blue-100 shadow-sm overflow-hidden animate-in slide-in-from-top-2 duration-300">
+                          <div className="bg-blue-50/50 px-6 py-3 flex items-center justify-between border-b border-blue-100">
+                            <h5 className="text-[10px] font-black text-blue-600 uppercase tracking-widest flex items-center gap-2">
+                              <History size={14} /> 对应告警通知流水 (多级触达记录)
+                            </h5>
+                            <span className="text-[10px] text-slate-400 font-bold tracking-widest">共 {notifications.length} 条通知</span>
+                          </div>
+                          <table className="w-full text-left text-xs">
+                            <thead>
+                              <tr className="border-b border-slate-50">
+                                <th className="px-6 py-3 font-bold text-slate-400 uppercase tracking-tighter">多级/接收人</th>
+                                <th className="px-6 py-3 font-bold text-slate-400 uppercase tracking-tighter text-center">触达方式</th>
+                                <th className="px-6 py-3 font-bold text-slate-400 uppercase tracking-tighter text-center">发送时间</th>
+                                <th className="px-6 py-3 font-bold text-slate-400 uppercase tracking-tighter text-center">状态记录</th>
+                                <th className="px-6 py-3 font-bold text-slate-400 uppercase tracking-tighter">反馈/备注</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100">
+                              {notifications.map((noti) => (
+                                <tr key={noti.id} className="hover:bg-slate-50/30">
+                                  <td className="px-6 py-3">
+                                    <div className="flex items-center gap-3">
+                                      <span className={cn(
+                                        "px-1.5 py-0.5 rounded text-[9px] font-black tracking-tighter",
+                                        noti.level === 'L3' ? "bg-red-500 text-white" : 
+                                        noti.level === 'L2' ? "bg-orange-400 text-white" : "bg-blue-400 text-white"
+                                      )}>
+                                        {noti.level}
+                                      </span>
+                                      <div>
+                                        <p className="font-bold text-slate-700">{noti.recipient}</p>
+                                        <p className="text-[9px] text-slate-400 font-bold tracking-widest">{noti.relation}</p>
+                                      </div>
+                                    </div>
+                                  </td>
+                                  <td className="px-6 py-3 text-center">
+                                    <div className="inline-flex items-center gap-1.5 px-2 py-1 bg-slate-50 text-slate-500 rounded border border-slate-100">
+                                      {noti.method === 'phone' ? <Phone size={12} className="text-blue-500" /> : 
+                                       noti.method === 'speaker' ? <Volume2 size={12} className="text-orange-500" /> : 
+                                       noti.method === 'sms' ? <History size={12} className="text-slate-500" /> : <MessageSquare size={12} className="text-green-500" />}
+                                      <span className="font-bold scale-95 origin-left">
+                                        {noti.method === 'phone' ? '电话' : noti.method === 'speaker' ? '语音' : noti.method === 'sms' ? '短信' : 'Push'}
+                                      </span>
+                                    </div>
+                                  </td>
+                                  <td className="px-6 py-3 text-center">
+                                    <span className="font-mono font-medium text-slate-500 tracking-tighter">{noti.sentTime}</span>
+                                  </td>
+                                  <td className="px-6 py-3 text-center">
+                                    {noti.confirmed ? (
+                                      <div className="flex items-center justify-center gap-1 text-green-600 font-bold">
+                                        <CheckCircle size={14} />
+                                        <div className="flex flex-col items-start leading-none">
+                                          <span className="scale-90 origin-left">已确认</span>
+                                          <span className="text-[8px] font-mono tracking-tighter opacity-70">{noti.confirmTime}</span>
+                                        </div>
+                                      </div>
+                                    ) : (
+                                      <div className="flex items-center justify-center gap-1 text-slate-400 font-bold italic">
+                                        <XCircle size={14} />
+                                        <span className="scale-90 origin-left">未响应</span>
+                                      </div>
+                                    )}
+                                  </td>
+                                  <td className="px-6 py-3">
+                                    <span className="text-slate-500 font-medium">{noti.remark || '--'}</span>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </React.Fragment>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </motion.div>
+  );
+}
+
+function RehabGuidanceView() {
+  const [activeCategory, setActiveCategory] = useState<string>('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [guidances, setGuidances] = useState<RehabGuidance[]>([]);
+  const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
+  const [showForm, setShowForm] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editForm, setEditForm] = useState<Partial<RehabGuidance>>({});
+
+  useEffect(() => {
+    const q = query(collection(db, 'guidances'));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as RehabGuidance));
+      setGuidances(data);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, 'guidances');
+    });
+    return () => unsubscribe();
+  }, []);
+
+  const filteredGuidances = guidances.filter(g => 
+    (activeCategory === 'all' || g.category === activeCategory) &&
+    (g.title.includes(searchQuery) || g.diseaseType.includes(searchQuery) || g.content.includes(searchQuery))
+  );
+
+  const categories: { id: 'all' | 'medication' | 'nursing' | 'followup' | 'exercise' | 'diet', label: string, icon: any, color?: string, bg?: string }[] = [
+    { id: 'all', label: '全部指导', icon: Library },
+    { id: 'medication', label: '用药指导', icon: Pill, color: 'text-blue-500', bg: 'bg-blue-50' },
+    { id: 'nursing', label: '护理指导', icon: HeartPulse, color: 'text-red-500', bg: 'bg-red-50' },
+    { id: 'followup', label: '复查提醒', icon: Stethoscope, color: 'text-indigo-500', bg: 'bg-indigo-50' },
+    { id: 'exercise', label: '运动方案', icon: Dumbbell, color: 'text-green-500', bg: 'bg-green-50' },
+    { id: 'diet', label: '饮食建议', icon: Utensils, color: 'text-orange-500', bg: 'bg-orange-50' },
+  ];
+
+  const handleEdit = (guidance: RehabGuidance) => {
+    setEditForm(guidance);
+    setIsEditing(true);
+    setShowForm(true);
+  };
+
+  const toggleGuidanceEnabled = async (id: string) => {
+    const guidance = guidances.find(g => g.id === id);
+    if (!guidance) return;
+    try {
+      await setDoc(doc(db, 'guidances', id), { isEnabled: !guidance.isEnabled }, { merge: true });
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, `guidances/${id}`);
+    }
+  };
+
+  const handleAdd = () => {
+    const d = new Date();
+    setEditForm({ 
+      category: 'medication', 
+      isEnabled: true, 
+      updatedAt: `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}` 
+    });
+    setIsEditing(false);
+    setShowForm(true);
+  };
+
+  const handleSave = async () => {
+    try {
+      if (isEditing && editForm.id) {
+        await setDoc(doc(db, 'guidances', editForm.id), { ...editForm }, { merge: true });
+      } else {
+        const docRef = doc(collection(db, 'guidances'));
+        const newGuidance = { ...editForm, createdAt: Timestamp.now() };
+        await setDoc(docRef, newGuidance);
+      }
+      setShowForm(false);
+    } catch(error) {
+      handleFirestoreError(error, OperationType.WRITE, 'guidances');
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (window.confirm("确定删除该指导方案吗？")) {
+      try {
+        await deleteDoc(doc(db, 'guidances', id));
+      } catch (error) {
+        handleFirestoreError(error, OperationType.DELETE, `guidances/${id}`);
+      }
+    }
+  };
+
+  if (showForm) {
+    return (
+      <div className="bg-white rounded-3xl p-8 border border-slate-200">
+        <h3 className="text-xl font-bold mb-6">{isEditing ? '编辑指导方案' : '新增指导方案'}</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+          <div>
+            <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1.5">方案标题</label>
+            <input 
+              type="text" 
+              value={editForm.title || ''} 
+              onChange={e => setEditForm({...editForm, title: e.target.value})}
+              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm" 
+              placeholder="例如：降压药服用指导"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1.5">疾病分类</label>
+            <select 
+              value={editForm.diseaseType || ''} 
+              onChange={e => setEditForm({...editForm, diseaseType: e.target.value})}
+              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none" 
+            >
+              <option value="">请选择疾病分类</option>
+              {['高血压', '糖尿病', '冠心病', '高血脂', '心律不齐', '阿尔兹海默症', '帕金森', '哮喘', '普遍慢性病', '骨关节炎'].map(tag => (
+                <option key={tag} value={tag}>{tag}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1.5">指导分类</label>
+            <select
+              value={editForm.category || 'medication'}
+              onChange={e => setEditForm({...editForm, category: e.target.value as any})}
+              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none"
+            >
+              <option value="medication">用药指导</option>
+              <option value="nursing">护理指导</option>
+              <option value="followup">复查提醒</option>
+              <option value="exercise">运动方案</option>
+              <option value="diet">饮食建议</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1.5">推荐频次</label>
+            <select 
+              value={editForm.frequency || ''} 
+              onChange={e => setEditForm({...editForm, frequency: e.target.value})}
+              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none" 
+            >
+              <option value="">请选择推荐频次</option>
+              {['1次/日', '2次/日', '3次/日', '早晚', '每餐', '每餐前', '每餐后', '每天', '每周', '每周1次', '3-4次/周', '每月', '每月1次', '每季度', '视情况而定'].map(freq => (
+                <option key={freq} value={freq}>{freq}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1.5">目标人群</label>
+            <input 
+              type="text" 
+              value={editForm.targetAudience || ''} 
+              onChange={e => setEditForm({...editForm, targetAudience: e.target.value})}
+              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm"
+              placeholder="例如：高血压患者"
+            />
+          </div>
+          <div className="flex items-center gap-3 mt-6">
+            <input 
+              type="checkbox" 
+              id="isEnabled"
+              checked={editForm.isEnabled || false}
+              onChange={e => setEditForm({...editForm, isEnabled: e.target.checked})}
+              className="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500"
+            />
+            <label htmlFor="isEnabled" className="text-sm font-medium text-slate-700">启用该该指导方案</label>
+          </div>
+          <div className="md:col-span-2">
+            <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1.5">指导内容</label>
+            <textarea 
+              value={editForm.content || ''} 
+              onChange={e => setEditForm({...editForm, content: e.target.value})}
+              rows={4}
+              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm" 
+              placeholder="详细的指导内容或说明..."
+            />
+          </div>
+        </div>
+        <div className="flex items-center justify-end gap-3 pt-6 border-t border-slate-100">
+          <button onClick={() => setShowForm(false)} className="px-6 py-2.5 rounded-xl text-sm font-bold text-slate-600 bg-slate-100 hover:bg-slate-200">取消</button>
+          <button onClick={handleSave} className="px-6 py-2.5 rounded-xl text-sm font-bold text-white bg-blue-600 hover:bg-blue-700">保存方案</button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <motion.div 
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -10 }}
+      className="space-y-6"
+    >
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h2 className="text-2xl font-black text-slate-800 tracking-tight">慢病康复运动管理</h2>
+          <p className="text-slate-500 text-sm font-medium">针对性健康指导方案与康复计划管理</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+            <input 
+              type="text"
+              placeholder="搜索标题、病种或内容..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 w-64 shadow-sm"
+            />
+          </div>
+          <div className="bg-slate-100 p-1 rounded-xl flex">
+            <button 
+              onClick={() => setViewMode('list')}
+              className={cn(
+                "p-2 rounded-lg transition-all",
+                viewMode === 'list' ? "bg-white text-blue-600 shadow-sm" : "text-slate-500 hover:text-slate-700"
+              )}
+            >
+              <List size={18} />
+            </button>
+            <button 
+              onClick={() => setViewMode('grid')}
+              className={cn(
+                "p-2 rounded-lg transition-all",
+                viewMode === 'grid' ? "bg-white text-blue-600 shadow-sm" : "text-slate-500 hover:text-slate-700"
+              )}
+            >
+              <LayoutGrid size={18} />
+            </button>
+          </div>
+          <div className="flex items-center gap-2">
+            <button 
+              onClick={() => document.getElementById('guidance-import')?.click()}
+              className="bg-white border border-slate-200 text-slate-600 px-4 py-2 rounded-xl text-sm font-bold shadow-sm hover:bg-slate-50 transition-all flex items-center gap-2"
+            >
+              <Upload size={18} /> 批量导入
+            </button>
+            <input 
+              type="file" 
+              id="guidance-import" 
+              className="hidden" 
+              accept=".csv,.xls,.xlsx" 
+              {...{ webkitdirectory: "", directory: "" } as any}
+              onChange={(e) => {
+                const files = Array.from(e.target.files || []) as File[];
+                const validFiles = files.filter(f => f.name.endsWith('.csv') || f.name.endsWith('.xls') || f.name.endsWith('.xlsx'));
+                if (validFiles.length > 0) {
+                  alert(`成功选择了 ${validFiles.length} 个有效的 Excel/CSV 文件，将开始批量解析导入`);
+                } else if (files.length > 0) {
+                  alert(`未找到有效文件，请确保文件夹中包含 .csv 或 .xls 格式的文件`);
+                }
+              }}
+            />
+            <button 
+               onClick={() => alert("功能开发中：将导出当前列表数据")}
+               className="bg-white border border-slate-200 text-slate-600 px-4 py-2 rounded-xl text-sm font-bold shadow-sm hover:bg-slate-50 transition-all flex items-center gap-2"
+            >
+              <Download size={18} /> 导出
+            </button>
+          </div>
+          <button 
+            onClick={handleAdd}
+            className="bg-blue-600 text-white px-4 py-2 rounded-xl text-sm font-bold shadow-lg shadow-blue-200 hover:bg-blue-700 transition-all flex items-center gap-2"
+          >
+            <Plus size={18} /> 新增指导
+          </button>
+        </div>
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        {categories.map((cat) => (
+          <button
+            key={cat.id}
+            onClick={() => setActiveCategory(cat.id)}
+            className={cn(
+              "px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 border",
+              activeCategory === cat.id 
+                ? "bg-slate-800 text-white border-slate-800 shadow-md" 
+                : "bg-white text-slate-500 border-slate-200 hover:border-slate-300"
+            )}
+          >
+            <cat.icon size={14} className={activeCategory === cat.id ? "text-white" : cat.color} />
+            {cat.label}
+          </button>
+        ))}
+      </div>
+
+      {viewMode === 'list' ? (
+        <div className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm">
+          <table className="w-full text-left">
+            <thead>
+              <tr className="bg-slate-50 border-b border-slate-200">
+                <th className="px-6 py-4 text-xs font-black text-slate-400 uppercase tracking-widest">指导方案/分类</th>
+                <th className="px-6 py-4 text-xs font-black text-slate-400 uppercase tracking-widest">目标人群/频次</th>
+                <th className="px-6 py-4 text-xs font-black text-slate-400 uppercase tracking-widest">内容描述</th>
+                <th className="px-6 py-4 text-xs font-black text-slate-400 uppercase tracking-widest text-center">更新时间</th>
+                <th className="px-6 py-4 text-xs font-black text-slate-400 uppercase tracking-widest w-12 text-center">状态</th>
+                <th className="px-6 py-4 text-xs font-black text-slate-400 uppercase tracking-widest text-right">操作</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {filteredGuidances.map((guidance) => {
+                const categoryInfo = categories.find(c => c.id === guidance.category);
+                const Icon = categoryInfo?.icon || Info;
+                return (
+                  <tr key={guidance.id} className="hover:bg-slate-50/50 transition-colors">
+                    <td className="px-6 py-4 flex items-center gap-3 block">
+                        <div className={cn("w-10 h-10 rounded-2xl flex items-center justify-center shadow-inner", categoryInfo?.bg, categoryInfo?.color)}>
+                          <Icon size={18} />
+                        </div>
+                        <div>
+                          <div className="text-sm font-bold text-slate-800">{guidance.title}</div>
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className="text-xs text-slate-500 font-medium">{categoryInfo?.label}</span>
+                            <span className="px-1.5 py-0.5 rounded bg-slate-100 text-[10px] font-bold text-slate-500 uppercase tracking-tighter">
+                              {guidance.diseaseType}
+                            </span>
+                          </div>
+                        </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="text-xs font-bold text-slate-700">{guidance.targetAudience}</div>
+                      <div className="text-[10px] text-slate-400 font-black uppercase tracking-widest mt-1">{guidance.frequency || '视情况而定'}</div>
+                    </td>
+                    <td className="px-6 py-4 max-w-xs">
+                      <p className="text-xs text-slate-500 truncate" title={guidance.content}>{guidance.content}</p>
+                    </td>
+                    <td className="px-6 py-4 text-center">
+                      <span className="text-[10px] font-mono font-bold text-slate-500 tracking-tighter">{guidance.updatedAt}</span>
+                    </td>
+                    <td className="px-6 py-4 text-center">
+                      <div className="flex justify-center">
+                        <Toggle enabled={guidance.isEnabled} onToggle={() => toggleGuidanceEnabled(guidance.id)} />
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <div className="flex justify-end gap-2">
+                        <button onClick={() => handleEdit(guidance)} className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
+                          <Edit3 size={16} />
+                        </button>
+                        <button onClick={() => handleDelete(guidance.id)} className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredGuidances.map((guidance) => {
+            const categoryInfo = categories.find(c => c.id === guidance.category);
+            const Icon = categoryInfo?.icon || Info;
+            
+            return (
+              <motion.div 
+                layout
+                key={guidance.id}
+                className="group bg-white rounded-3xl border border-slate-200 p-6 hover:shadow-xl hover:shadow-slate-200/50 transition-all relative overflow-hidden"
+              >
+                <div className="flex items-start justify-between mb-4">
+                  <div className={cn("w-12 h-12 rounded-2xl flex items-center justify-center shadow-inner", categoryInfo?.bg, categoryInfo?.color)}>
+                    <Icon size={24} />
+                  </div>
+                  <div className="flex flex-col items-end">
+                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">更新时间</span>
+                    <span className="text-[10px] font-mono font-bold text-slate-500 tracking-tighter">{guidance.updatedAt}</span>
+                  </div>
+                </div>
+
+                <div>
+                  <div className="flex items-center gap-3 mb-1">
+                    <span className="px-2 py-0.5 rounded bg-slate-100 text-[10px] font-bold text-slate-500 uppercase tracking-tighter">
+                      {guidance.diseaseType}
+                    </span>
+                    <Toggle enabled={guidance.isEnabled} onToggle={() => toggleGuidanceEnabled(guidance.id)} />
+                  </div>
+                  <h3 className="text-lg font-black text-slate-800 mb-2 leading-tight group-hover:text-blue-600 transition-colors">
+                    {guidance.title}
+                  </h3>
+                  <p className="text-xs text-slate-500 font-medium mb-4 line-clamp-3">
+                    {guidance.content}
+                  </p>
+                </div>
+
+                <div className="flex items-center justify-between pt-4 border-t border-slate-50">
+                  <div className="flex flex-col">
+                    <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest">推荐频次</span>
+                    <span className="text-[11px] font-bold text-slate-600">{guidance.frequency || '视情况而定'}</span>
+                  </div>
+                  <div className="flex flex-col items-end">
+                    <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest">目标人群</span>
+                    <span className="text-[11px] font-bold text-slate-600">{guidance.targetAudience}</span>
+                  </div>
+                </div>
+
+                <div className="absolute top-0 right-0 p-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <button onClick={() => handleDelete(guidance.id)} className="p-2 bg-slate-50 text-slate-400 rounded-lg hover:text-red-600 hover:bg-red-50 transition-all ml-1">
+                    <Trash2 size={16} />
+                  </button>
+                  <button onClick={() => handleEdit(guidance)} className="p-2 bg-slate-50 text-slate-400 rounded-lg hover:text-blue-600 hover:bg-blue-50 transition-all ml-1">
+                    <Edit3 size={16} />
+                  </button>
+                </div>
+              </motion.div>
+            );
+          })}
+
+          <button onClick={handleAdd} className="bg-slate-50 border-2 border-dashed border-slate-200 rounded-3xl p-8 flex flex-col items-center justify-center gap-3 text-slate-400 hover:border-blue-300 hover:text-blue-600 hover:bg-white transition-all group min-h-[220px]">
+            <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center group-hover:bg-blue-50 transition-colors">
+              <Plus size={24} />
+            </div>
+            <p className="text-sm font-bold">创建新引导方案</p>
+          </button>
+        </div>
+      )}
+    </motion.div>
+  );
+}
+
 function RobotMgmtView() {
-  const [robots, setRobots] = useState<Robot[]>(MOCK_ROBOTS);
+  const [robots, setRobots] = useState<Robot[]>([]);
+  useEffect(() => {
+    const q = query(collection(db, 'robots'));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Robot));
+      setRobots(data);
+    }, (error) => handleFirestoreError(error, OperationType.LIST, 'robots'));
+    return () => unsubscribe();
+  }, []);
   const [filterType, setFilterType] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -1391,8 +2047,14 @@ function RobotMgmtView() {
   const [form, setForm] = useState<Partial<Robot>>({});
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
 
-  const toggleRobotEnabled = (id: string) => {
-    setRobots(prev => prev.map(r => r.id === id ? { ...r, enabled: !r.enabled } : r));
+  const toggleRobotEnabled = async (id: string) => {
+    const r = robots.find(item => item.id === id);
+    if (!r) return;
+    try {
+      await setDoc(doc(db, 'robots', id), { enabled: !r.enabled }, { merge: true });
+    } catch(err) {
+      handleFirestoreError(err, OperationType.UPDATE, `robots/${id}`);
+    }
   };
 
   const filteredRobots = robots.filter(r => 
@@ -1412,7 +2074,7 @@ function RobotMgmtView() {
         name: '',
         model: 'JH-Alpha V1',
         sn: '',
-        id: '',
+        id: `R${Math.floor(Math.random() * 900000) + 100000}`,
         institutionType: 'home',
         institutionName: '',
         location: '',
@@ -1426,23 +2088,31 @@ function RobotMgmtView() {
     setIsModalOpen(true);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!form.name || !form.sn || !form.id) {
       alert('请填写必要的基本信息');
       return;
     }
     
-    if (selectedRobot) {
-      setRobots(prev => prev.map(r => r.id === selectedRobot.id ? (form as Robot) : r));
-    } else {
-      setRobots(prev => [...prev, form as Robot]);
+    try {
+      if (selectedRobot) {
+        await setDoc(doc(db, 'robots', selectedRobot.id), { ...form }, { merge: true });
+      } else {
+        await setDoc(doc(db, 'robots', form.id!), { ...form });
+      }
+      setIsModalOpen(false);
+    } catch (err) {
+      handleFirestoreError(err, OperationType.WRITE, `robots/${form.id}`);
     }
-    setIsModalOpen(false);
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (confirm('确认注销并删除此机器人设备？')) {
-      setRobots(prev => prev.filter(r => r.id !== id));
+      try {
+        await deleteDoc(doc(db, 'robots', id));
+      } catch (err) {
+        handleFirestoreError(err, OperationType.DELETE, `robots/${id}`);
+      }
     }
   };
 
@@ -1957,7 +2627,15 @@ function StatCard({ title, value, sub, icon, color }: any) {
 }
 
 function ArchivesView() {
-  const [archives, setArchives] = useState<HealthArchive[]>(MOCK_ARCHIVES);
+  const [archives, setArchives] = useState<HealthArchive[]>([]);
+  useEffect(() => {
+    const q = query(collection(db, 'archives'));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as HealthArchive));
+      setArchives(data);
+    }, (error) => handleFirestoreError(error, OperationType.LIST, 'archives'));
+    return () => unsubscribe();
+  }, []);
   const [selectedArchive, setSelectedArchive] = useState<HealthArchive | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState<HealthArchive | null>(null);
@@ -2000,26 +2678,26 @@ function ArchivesView() {
     setIsEditing(true);
   };
 
-  const toggleStatus = (id: string, e: React.MouseEvent) => {
+  const toggleStatus = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    setArchives(prev => prev.map(a => 
-      a.id === id ? { ...a, status: a.status === 'inactive' ? 'active' : 'inactive' } : a
-    ));
+    const arc = archives.find(a => a.id === id);
+    if (!arc) return;
+    try {
+      await setDoc(doc(db, 'archives', id), { status: arc.status === 'inactive' ? 'active' : 'inactive', updatedAt: Timestamp.now() }, { merge: true });
+    } catch(err) {
+      handleFirestoreError(err, OperationType.UPDATE, `archives/${id}`);
+    }
   };
 
-  const saveEdit = () => {
+  const saveEdit = async () => {
     if (editForm) {
-      setArchives(prev => {
-        const index = prev.findIndex(a => a.id === editForm.id);
-        if (index >= 0) {
-          const newArchives = [...prev];
-          newArchives[index] = editForm;
-          return newArchives;
-        }
-        return [editForm, ...prev];
-      });
-      setSelectedArchive(editForm);
-      setIsEditing(false);
+      try {
+        await setDoc(doc(db, 'archives', editForm.id), { ...editForm, updatedAt: Timestamp.now() }, { merge: true });
+        setSelectedArchive(editForm);
+        setIsEditing(false);
+      } catch(err) {
+        handleFirestoreError(err, OperationType.WRITE, `archives/${editForm.id}`);
+      }
     }
   };
 
@@ -2564,8 +3242,7 @@ function ArchivesView() {
                               <option value="rehab">康复训练</option>
                               <option value="checkup">复查计划</option>
                             </select>
-                            <input 
-                              placeholder="执行频率 (如: 1次/日)"
+                            <select 
                               className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs font-bold"
                               value={order.frequency}
                               onChange={e => {
@@ -2573,7 +3250,20 @@ function ArchivesView() {
                                 const newOrders = editForm.medicalOrders.map(o => o.id === order.id ? {...o, frequency: e.target.value} : o);
                                 setEditForm({ ...editForm, medicalOrders: newOrders });
                               }}
-                            />
+                            >
+                              <option value="">请选择频次</option>
+                              <option value="1次/日">1次/日</option>
+                              <option value="2次/日">2次/日</option>
+                              <option value="3次/日">3次/日</option>
+                              <option value="4次/日">4次/日</option>
+                              <option value="隔日1次">隔日1次</option>
+                              <option value="1次/周">1次/周</option>
+                              <option value="2次/周">2次/周</option>
+                              <option value="3次/周">3次/周</option>
+                              <option value="按需">按需</option>
+                              <option value="1次/月">1次/月</option>
+                              <option value="其他">其他</option>
+                            </select>
                           </div>
                           <textarea 
                             rows={2}
@@ -2623,11 +3313,6 @@ function ArchivesView() {
               <section>
                 <div className="flex items-center justify-between mb-6 border-l-4 border-red-500 pl-4">
                   <h5 className="font-bold uppercase tracking-widest text-sm text-slate-800">紧急联系人 (多位)</h5>
-                  {isEditing && (
-                    <button onClick={addEmergencyContact} className="text-red-600 hover:text-red-700 flex items-center gap-1 text-xs font-bold">
-                      <UserPlus size={14} /> 添加联系人
-                    </button>
-                  )}
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {(isEditing ? editForm?.emergencyContacts : selectedArchive.emergencyContacts)?.map((contact, i) => (
@@ -2700,6 +3385,18 @@ function ArchivesView() {
                       )}
                     </div>
                   ))}
+                  
+                  {isEditing && (
+                    <button 
+                      onClick={addEmergencyContact}
+                      className="border-2 border-dashed border-slate-200 rounded-2xl p-5 flex flex-col items-center justify-center gap-2 text-slate-400 hover:border-indigo-300 hover:text-indigo-600 hover:bg-indigo-50/30 transition-all group"
+                    >
+                      <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center group-hover:bg-indigo-100 transition-colors">
+                        <UserPlus size={20} />
+                      </div>
+                      <span className="text-xs font-bold">添加新联系人</span>
+                    </button>
+                  )}
                 </div>
               </section>
             </div>
@@ -2749,7 +3446,15 @@ function MetricBox({ label, value, info }: { label: string, value: string, info?
 }
 
 function AlertsView() {
-  const [alerts, setAlerts] = useState<AlertRule[]>(MOCK_ALERTS);
+  const [alerts, setAlerts] = useState<AlertRule[]>([]);
+  useEffect(() => {
+    const q = query(collection(db, 'alerts'));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as AlertRule));
+      setAlerts(data);
+    }, (error) => handleFirestoreError(error, OperationType.LIST, 'alerts'));
+    return () => unsubscribe();
+  }, []);
   const [selectedAlert, setSelectedAlert] = useState<AlertRule | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [form, setForm] = useState<Partial<AlertRule>>({});
@@ -2761,8 +3466,14 @@ function AlertsView() {
     '子女', '社区物业', '居委会', '主治医生'
   ]));
 
-  const toggleAlertStatus = (id: string) => {
-    setAlerts(prev => prev.map(a => a.id === id ? { ...a, enabled: !a.enabled } : a));
+  const toggleAlertStatus = async (id: string) => {
+    const alert = alerts.find(a => a.id === id);
+    if (!alert) return;
+    try {
+      await setDoc(doc(db, 'alerts', id), { enabled: !alert.enabled }, { merge: true });
+    } catch(err) {
+      handleFirestoreError(err, OperationType.UPDATE, `alerts/${id}`);
+    }
   };
 
   const filteredAlerts = alerts.filter(a => 
@@ -2789,24 +3500,29 @@ function AlertsView() {
     setIsModalOpen(true);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!form.event || !form.description) return;
     
-    if (selectedAlert) {
-      setAlerts(prev => prev.map(a => a.id === selectedAlert.id ? (form as AlertRule) : a));
-    } else {
-      const newAlert: AlertRule = {
-        ...form as any,
-        id: Math.random().toString(36).substr(2, 9)
-      };
-      setAlerts(prev => [...prev, newAlert]);
+    try {
+      if (selectedAlert) {
+        await setDoc(doc(db, 'alerts', selectedAlert.id), { ...form }, { merge: true });
+      } else {
+        const id = Math.random().toString(36).substr(2, 9);
+        await setDoc(doc(db, 'alerts', id), { ...form, id });
+      }
+      setIsModalOpen(false);
+    } catch (err) {
+      handleFirestoreError(err, OperationType.WRITE, 'alerts');
     }
-    setIsModalOpen(false);
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (confirm('确认删除此告警规则？')) {
-      setAlerts(prev => prev.filter(a => a.id !== id));
+      try {
+        await deleteDoc(doc(db, 'alerts', id));
+      } catch (err) {
+        handleFirestoreError(err, OperationType.DELETE, `alerts/${id}`);
+      }
     }
   };
 
@@ -3156,7 +3872,15 @@ function AlertsView() {
 }
 
 function ThresholdsView() {
-  const [thresholds, setThresholds] = useState<IndicatorThreshold[]>(MOCK_THRESHOLDS);
+  const [thresholds, setThresholds] = useState<IndicatorThreshold[]>([]);
+  useEffect(() => {
+    const q = query(collection(db, 'thresholds'));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as IndicatorThreshold));
+      setThresholds(data);
+    }, (error) => handleFirestoreError(error, OperationType.LIST, 'thresholds'));
+    return () => unsubscribe();
+  }, []);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
   const [currentTemplate, setCurrentTemplate] = useState('标准成人');
@@ -3167,8 +3891,14 @@ function ThresholdsView() {
   const [editMin, setEditMin] = useState(0);
   const [editMax, setEditMax] = useState(0);
 
-  const toggleThresholdStatus = (id: string) => {
-    setThresholds(prev => prev.map(t => t.id === id ? { ...t, enabled: !t.enabled } : t));
+  const toggleThresholdStatus = async (id: string) => {
+    const t = thresholds.find(item => item.id === id);
+    if (!t) return;
+    try {
+      await setDoc(doc(db, 'thresholds', id), { enabled: !t.enabled }, { merge: true });
+    } catch(err) {
+      handleFirestoreError(err, OperationType.UPDATE, `thresholds/${id}`);
+    }
   };
 
   const filteredThresholds = thresholds.filter(t => 
@@ -3182,12 +3912,14 @@ function ThresholdsView() {
     setEditMax(indicator.maxVal);
   };
 
-  const saveIndicatorThreshold = () => {
+  const saveIndicatorThreshold = async () => {
     if (editingIndicator) {
-      setThresholds(prev => prev.map(ind => 
-        ind.id === editingIndicator.id ? { ...ind, minVal: editMin, maxVal: editMax } : ind
-      ));
-      setEditingIndicator(null);
+      try {
+        await setDoc(doc(db, 'thresholds', editingIndicator.id), { minVal: editMin, maxVal: editMax }, { merge: true });
+        setEditingIndicator(null);
+      } catch(err) {
+        handleFirestoreError(err, OperationType.UPDATE, `thresholds/${editingIndicator.id}`);
+      }
     }
   };
 
