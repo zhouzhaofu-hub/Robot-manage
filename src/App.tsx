@@ -66,17 +66,88 @@ const DISEASE_TAGS = ['高血压', '糖尿病', '冠心病', '高血脂', '心�
 const COMMON_DIAGNOSES = ['原发性高血压', '2型糖尿病', '骨质疏松', '慢性阻塞性肺疾病', '白内障', '类风湿性关节炎'];
 
 const MOCK_TASKS: CareTask[] = [
-  { id: 'T1', patientName: '张大爷', type: 'medication', status: 'pending', scheduledTime: '2026-04-20 10:30', robotName: '智护-A01', content: '口服氨氯地平 5mg' },
-  { id: 'T2', patientName: '李奶奶', type: 'measurement', status: 'completed', scheduledTime: '2026-04-20 09:00', robotName: '智护-A02', content: '餐后血糖测量' },
-  { id: 'T3', patientName: '张大爷', type: 'exercise', status: 'failed', scheduledTime: '2026-04-20 08:30', robotName: '智护-A01', content: '坐站平衡训练' },
+  { id: 'T1', patientName: '张大爷', type: 'medication', status: 'pending', scheduledTime: '2026-04-20 10:30', robotName: '智护-A01', content: '口服氨氯地平 5mg', enabled: true },
+  { id: 'T2', patientName: '李奶奶', type: 'measurement', status: 'completed', scheduledTime: '2026-04-20 09:00', robotName: '智护-A02', content: '餐后血糖测量', enabled: true },
+  { id: 'T3', patientName: '张大爷', type: 'exercise', status: 'failed', scheduledTime: '2026-04-20 08:30', robotName: '智护-A01', content: '坐站平衡训练', enabled: true },
 ];
 
 const MOCK_DEVICES: SmartDevice[] = [
-  { id: 'D1', name: '客厅毫米波雷达', type: 'sensor', status: 'online', lastSync: '1分钟前', battery: 92 },
-  { id: 'D2', name: '智能网关-A1', type: 'gateway', status: 'online', lastSync: '实时' },
-  { id: 'D3', name: '卧室高清摄像头', type: 'camera', status: 'offline', lastSync: '1小时前' },
-  { id: 'D4', name: '蓝牙体重秤', type: 'scale', status: 'online', lastSync: '昨日', battery: 15 },
-  { id: 'D5', name: '欧姆龙血压计', type: 'blood_pressure', status: 'online', lastSync: '3小时前' },
+  { 
+    id: 'D1', 
+    name: '客厅毫米波雷达', 
+    type: 'sensor', 
+    status: 'online', 
+    enabled: true, 
+    lastSync: '1分钟前', 
+    battery: 92,
+    sn: 'SN-RADAR-001',
+    robotId: '1',
+    firmware: 'v2.4.1',
+    readings: [
+      { time: '10:00', value: '1', unit: '人' },
+      { time: '10:05', value: '1', unit: '人' },
+      { time: '10:10', value: '0', unit: '人' },
+      { time: '10:15', value: '1', unit: '人' },
+    ],
+    config: { reportingInterval: 5, sensitivity: '高', mode: '实时监测' }
+  },
+  { 
+    id: 'D2', 
+    name: '智能网关-A1', 
+    type: 'gateway', 
+    status: 'online', 
+    enabled: true, 
+    lastSync: '实时',
+    sn: 'SN-GW-882',
+    robotId: '1',
+    firmware: 'v5.0.2',
+    config: { reportingInterval: 1, sensitivity: '中', mode: '网关模式' }
+  },
+  { 
+    id: 'D3', 
+    name: '卧室高清摄像头', 
+    type: 'camera', 
+    status: 'offline', 
+    enabled: true, 
+    lastSync: '1小时前',
+    sn: 'SN-CAM-991',
+    robotId: '2',
+    firmware: 'v1.2.0',
+    config: { reportingInterval: 0, sensitivity: '智能', mode: '移动侦测' }
+  },
+  { 
+    id: 'D4', 
+    name: '蓝牙体重秤', 
+    type: 'scale', 
+    status: 'online', 
+    enabled: false, 
+    lastSync: '昨日', 
+    battery: 15,
+    sn: 'SN-SCALE-332',
+    robotId: '2',
+    firmware: 'v1.0.1',
+    readings: [
+      { time: '昨日 08:00', value: '72.5', unit: 'kg' },
+      { time: '04-18 08:30', value: '72.8', unit: 'kg' },
+    ],
+    config: { reportingInterval: 0, sensitivity: '高', mode: '自动同步' }
+  },
+  { 
+    id: 'D5', 
+    name: '欧姆龙血压计', 
+    type: 'blood_pressure', 
+    status: 'online', 
+    enabled: true, 
+    lastSync: '3小时前',
+    sn: 'SN-BP-112',
+    robotId: '1',
+    firmware: 'v3.1.4',
+    readings: [
+      { time: '14:00', value: '120/80', unit: 'mmHg' },
+      { time: '前日 15:30', value: '125/82', unit: 'mmHg' },
+    ],
+    config: { reportingInterval: 0, sensitivity: '医疗级', mode: '双人模式' }
+  },
 ];
 
 const MOCK_ROBOTS: Robot[] = [
@@ -86,6 +157,7 @@ const MOCK_ROBOTS: Robot[] = [
     name: '智护-A01', 
     model: 'JH-Alpha V1',
     status: 'online', 
+    enabled: true,
     battery: 85, 
     location: '张大爷家-客厅', 
     institutionType: 'home', 
@@ -99,6 +171,7 @@ const MOCK_ROBOTS: Robot[] = [
     name: '智护-A02', 
     model: 'JH-Alpha V1',
     status: 'working', 
+    enabled: true,
     battery: 42, 
     location: '康复中心-走廊', 
     institutionType: 'hospital', 
@@ -112,6 +185,7 @@ const MOCK_ROBOTS: Robot[] = [
     name: '智护-B05', 
     model: 'JH-Beta V2',
     status: 'error', 
+    enabled: false,
     battery: 12, 
     location: '社区站-充电位', 
     institutionType: 'community', 
@@ -174,14 +248,26 @@ const MOCK_ARCHIVES: HealthArchive[] = [
 ];
 
 const MOCK_ALERTS: AlertRule[] = [
-  { id: '1', level: 'critical', event: 'fall', notifyPersons: ['子女', '社区物业'], description: '雷达监测跌倒且语音确认无应答' },
-  { id: '2', level: 'warning', event: 'vital_anomaly', notifyPersons: ['子女'], description: '静息心率超过100次/分或血氧低于92%' },
-  { id: '3', level: 'info', event: 'routine_notice', notifyPersons: ['子女'], description: '每日定时服药提醒与晨间活动确认' },
+  // L3: 跌倒、突发疾病
+  { id: '1', level: 'critical', event: 'fall', notifyPersons: ['长子', '社区网格员'], description: '雷达监测到老人跌倒，语音交互无应答，已启动紧急预案', enabled: true },
+  { id: '2', level: 'critical', event: 'sudden_illness', notifyPersons: ['女儿', '120急救'], description: '监测到突发性剧烈疼痛报警，疑似急性心脏病发作', enabled: true },
+  { id: '3', level: 'critical', event: 'sudden_illness', notifyPersons: ['老伴', '社区医院'], description: '红外光电传感器监测到意识水平下降，生命体征波动剧烈', enabled: true },
+  
+  // L2: 特殊指标超过阈值
+  { id: '4', level: 'warning', event: 'vital_anomaly', notifyPersons: ['子女'], description: '收缩压超过160mmHg，持续3次测量未见下降', enabled: true },
+  { id: '5', level: 'warning', event: 'vital_anomaly', notifyPersons: ['医生'], description: '静息心率超过110次/分，触发长期房颤监测预警', enabled: true },
+  { id: '6', level: 'warning', event: 'vital_anomaly', notifyPersons: ['子女', '医生'], description: '血氧饱和度持续低于90%，建议立即进行吸氧处理', enabled: true },
+  
+  // L1: 常规任务完成情况
+  { id: '7', level: 'info', event: 'routine_notice', notifyPersons: ['子女'], description: '早晨8:00降压药服用任务已按时完成', enabled: true },
+  { id: '8', level: 'info', event: 'routine_notice', notifyPersons: ['长子'], description: '康复训练目标（每日3000步）已于16:00提前达成', enabled: true },
+  { id: '9', level: 'info', event: 'routine_notice', notifyPersons: ['家人'], description: '晚间睡前洗漱及环境安防检查任务已完成确认', enabled: true },
 ];
 
 const MOCK_THRESHOLDS: IndicatorThreshold[] = [
-  { id: '1', name: '收缩压(SBP)', type: 'vital', unit: 'mmHg', minVal: 90, maxVal: 140, templateName: '标准成人' },
-  { id: '2', name: '空腹血糖', type: 'lab', unit: 'mmol/L', minVal: 3.9, maxVal: 6.1, templateName: '标准成人' },
+  { id: '1', name: '收缩压(SBP)', type: 'vital', unit: 'mmHg', minVal: 90, maxVal: 140, templateName: '标准成人', enabled: true },
+  { id: '2', name: '空腹血糖', type: 'lab', unit: 'mmol/L', minVal: 3.9, maxVal: 6.1, templateName: '标准成人', enabled: true },
+  { id: '3', name: '静息心率', type: 'vital', unit: '次/分', minVal: 60, maxVal: 100, templateName: '标准成人', enabled: true },
 ];
 
 export default function App() {
@@ -415,12 +501,45 @@ function NavSubGroup({
   );
 }
 
+// --- Shared Components ---
+
+function Toggle({ enabled, onToggle }: { enabled: boolean; onToggle: () => void }) {
+  return (
+    <button 
+      onClick={(e) => { e.stopPropagation(); onToggle(); }}
+      className={cn(
+        "relative inline-flex h-5 w-10 items-center rounded-full transition-colors focus:outline-none cursor-pointer",
+        enabled ? "bg-blue-600 shadow-sm" : "bg-slate-200"
+      )}
+    >
+      <span
+        className={cn(
+          "inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform shadow-sm",
+          enabled ? "translate-x-5.5" : "translate-x-1"
+        )}
+      />
+    </button>
+  );
+}
+
 // --- Views ---
 
 function TaskMgmtView() {
   const [tasks, setTasks] = useState<CareTask[]>(MOCK_TASKS);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentTask, setCurrentTask] = useState<Partial<CareTask> | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const toggleTaskEnabled = (id: string) => {
+    setTasks(prev => prev.map(t => t.id === id ? { ...t, enabled: !t.enabled } : t));
+  };
+
+  const filteredTasks = tasks.filter(t => 
+    t.patientName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    t.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    t.robotName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    t.id.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   const openModal = (task?: CareTask) => {
     if (task) {
@@ -435,7 +554,8 @@ function TaskMgmtView() {
         status: 'pending',
         scheduledTime: timeStr,
         robotName: MOCK_ROBOTS[0]?.name || '',
-        content: ''
+        content: '',
+        enabled: true
       });
     }
     setIsModalOpen(true);
@@ -475,16 +595,29 @@ function TaskMgmtView() {
       exit={{ opacity: 0, y: -20 }}
       className="space-y-6"
     >
-      <div className="flex justify-between items-center bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 bg-white p-4 rounded-xl shadow-sm border border-slate-200">
         <div>
           <h3 className="font-bold text-lg text-slate-800">实时照护任务计划</h3>
           <p className="text-xs text-slate-400">基于医嘱生成的自动化看护任务执行状态</p>
         </div>
-        <div className="flex gap-3">
-          <button className="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-200">导出报表</button>
+        
+        <div className="flex flex-1 items-center gap-4 w-full lg:w-auto">
+          <div className="relative flex-1 lg:max-w-xs">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+            <input 
+              type="text" 
+              placeholder="搜索任务、对象或机器人..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-100 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all font-medium"
+            />
+          </div>
+
+          <button className="px-4 py-2 bg-slate-100 text-slate-600 rounded-lg text-sm font-bold hover:bg-slate-200 transition-colors whitespace-nowrap">导出报表</button>
+          
           <button 
             onClick={() => openModal()}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium flex items-center gap-2 transition-all active:scale-95 shadow-lg shadow-blue-100 ring-offset-2 focus:ring-2 focus:ring-blue-500"
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-bold flex items-center gap-2 transition-all active:scale-95 shadow-lg shadow-blue-100 ring-offset-2 focus:ring-2 focus:ring-blue-500 whitespace-nowrap"
           >
             <Plus size={18} /> 手动派发任务
           </button>
@@ -495,23 +628,27 @@ function TaskMgmtView() {
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="bg-slate-50/50 border-b border-slate-200">
-              <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">开始执行时间</th>
-              <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">看护对象</th>
-              <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">任务内容</th>
-              <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">执行机器人</th>
-              <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">状态</th>
-              <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-right">操作</th>
+              <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">开始执行时间</th>
+              <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">看护对象</th>
+              <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">任务内容</th>
+              <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">执行机器人</th>
+              <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">启用</th>
+              <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">状态</th>
+              <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">操作</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
-            {tasks.map((task) => (
-              <tr key={task.id} className="hover:bg-slate-50/50 transition-colors group text-sm">
+            {filteredTasks.map((task) => (
+              <tr key={task.id} className={cn(
+                "hover:bg-slate-50/50 transition-colors group text-sm",
+                !task.enabled && "opacity-60 bg-slate-50/40"
+              )}>
                 <td className="px-6 py-4 font-mono text-slate-500">{task.scheduledTime}</td>
                 <td className="px-6 py-4 font-bold text-slate-700">{task.patientName}</td>
                 <td className="px-6 py-4">
                   <div className="flex items-center gap-2">
                     <span className={cn(
-                      "p-1.5 rounded-lg",
+                      "p-1.5 rounded-lg shadow-inner",
                       task.type === 'medication' ? 'bg-blue-50 text-blue-600' :
                       task.type === 'measurement' ? 'bg-green-50 text-green-600' :
                       task.type === 'exercise' ? 'bg-purple-50 text-purple-600' : 'bg-pink-50 text-pink-600'
@@ -519,13 +656,19 @@ function TaskMgmtView() {
                       {task.type === 'medication' && <CheckCircle2 size={14} />}
                       {task.type === 'measurement' && <Activity size={14} />}
                       {task.type === 'exercise' && <Activity size={14} />}
+                      {task.type === 'emotion' && <Heart size={14} />}
                     </span>
-                    {task.content}
+                    <span className="font-medium text-slate-600">{task.content}</span>
                   </div>
                 </td>
-                <td className="px-6 py-4 flex items-center gap-2">
-                  <Bot size={14} className="text-slate-400" />
-                  {task.robotName}
+                <td className="px-6 py-4">
+                  <div className="flex items-center gap-2 text-slate-500 font-medium">
+                    <Bot size={14} className="text-blue-400" />
+                    {task.robotName}
+                  </div>
+                </td>
+                <td className="px-6 py-4 text-center">
+                  <Toggle enabled={task.enabled} onToggle={() => toggleTaskEnabled(task.id)} />
                 </td>
                 <td className="px-6 py-4">
                   <span className={cn(
@@ -701,6 +844,53 @@ function TaskMgmtView() {
 }
 
 function SmartDeviceMgmtView() {
+  const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
+  const [devices, setDevices] = useState<SmartDevice[]>(MOCK_DEVICES);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedDevice, setSelectedDevice] = useState<SmartDevice | null>(null);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [addForm, setAddForm] = useState<Partial<SmartDevice>>({
+    name: '',
+    type: 'sensor',
+    sn: '',
+    robotId: MOCK_ROBOTS[0]?.id || ''
+  });
+
+  const handleAddDevice = () => {
+    const newDevice: SmartDevice = {
+      id: `D${Date.now()}`,
+      name: addForm.name || '新设备',
+      type: addForm.type as any || 'sensor',
+      sn: addForm.sn || `SN-${Date.now()}`,
+      robotId: addForm.robotId,
+      status: 'online',
+      enabled: true,
+      lastSync: '刚刚',
+      battery: 100,
+      firmware: 'v1.0.0',
+      config: { reportingInterval: 5, sensitivity: '中', mode: '标准模式' }
+    };
+    setDevices([newDevice, ...devices]);
+    setIsAddModalOpen(false);
+    setAddForm({ name: '', type: 'sensor', sn: '', robotId: MOCK_ROBOTS[0]?.id || '' });
+  };
+
+  const toggleDeviceEnabled = (id: string) => {
+    setDevices(prev => prev.map(d => d.id === id ? { ...d, enabled: !d.enabled } : d));
+  };
+
+  const filteredDevices = devices.filter(d => 
+    d.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    d.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (d.sn && d.sn.toLowerCase().includes(searchQuery.toLowerCase()))
+  );
+
+  const openDetails = (device: SmartDevice) => {
+    setSelectedDevice(device);
+    setIsDetailModalOpen(true);
+  };
+
   return (
     <motion.div 
       initial={{ opacity: 0, scale: 0.98 }}
@@ -708,72 +898,486 @@ function SmartDeviceMgmtView() {
       exit={{ opacity: 0, scale: 1.02 }}
       className="space-y-6"
     >
-      <div className="flex justify-between items-center mb-2">
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 bg-white p-4 rounded-xl shadow-sm border border-slate-200">
         <div className="flex items-center gap-4">
           <h3 className="font-bold text-lg">健康监测设备管理</h3>
           <div className="flex gap-2">
-            <span className="flex items-center gap-1 text-[10px] px-2 py-0.5 bg-green-50 text-green-600 rounded-full font-bold">4 在线</span>
-            <span className="flex items-center gap-1 text-[10px] px-2 py-0.5 bg-red-50 text-red-600 rounded-full font-bold">1 离线</span>
+            <span className="flex items-center gap-1 text-[10px] px-2 py-0.5 bg-blue-50 text-blue-600 rounded-full font-bold">{devices.filter(d => d.status === 'online').length} 在线</span>
+            <span className="flex items-center gap-1 text-[10px] px-2 py-0.5 bg-red-50 text-red-600 rounded-full font-bold">{devices.filter(d => d.status === 'offline').length} 离线</span>
           </div>
         </div>
-        <button className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2">
-          <Wifi size={18} /> 搜索新设备
-        </button>
+        
+        <div className="flex flex-1 items-center gap-3 w-full lg:w-auto">
+          <div className="relative flex-1 lg:max-w-xs">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+            <input 
+              type="text" 
+              placeholder="搜索设备名称或序列号..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-100 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all font-medium"
+            />
+          </div>
+
+          <div className="bg-slate-100 p-1 rounded-lg flex items-center">
+            <button 
+              onClick={() => setViewMode('list')}
+              className={cn(
+                "p-1.5 rounded-md transition-all",
+                viewMode === 'list' ? "bg-white shadow-sm text-blue-600" : "text-slate-400 hover:text-slate-600"
+              )}
+            >
+              <List size={18} />
+            </button>
+            <button 
+              onClick={() => setViewMode('grid')}
+              className={cn(
+                "p-1.5 rounded-md transition-all",
+                viewMode === 'grid' ? "bg-white shadow-sm text-blue-600" : "text-slate-400 hover:text-slate-600"
+              )}
+            >
+              <LayoutGrid size={18} />
+            </button>
+          </div>
+
+          <button 
+            onClick={() => setIsAddModalOpen(true)}
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-blue-700 transition-colors shadow-lg shadow-blue-100 whitespace-nowrap active:scale-95"
+          >
+            <Plus size={18} /> 添加新设备
+          </button>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {MOCK_DEVICES.map((device) => (
-          <div key={device.id} className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 group relative text-sm">
-            <div className="flex items-start justify-between mb-4">
-              <div className={cn(
-                "w-12 h-12 rounded-2xl flex items-center justify-center",
-                device.status === 'online' ? 'bg-blue-50 text-blue-600' : 'bg-slate-50 text-slate-400'
-              )}>
-                {device.type === 'sensor' && <Wifi size={24} />}
-                {device.type === 'gateway' && <Smartphone size={24} />}
-                {device.type === 'camera' && <Video size={24} />}
-                {device.type === 'scale' && <Scale size={24} />}
-                {device.type === 'blood_pressure' && <Activity size={24} />}
-              </div>
-              <div className="text-right">
-                <span className={cn(
-                  "text-[10px] font-black uppercase tracking-widest",
-                  device.status === 'online' ? 'text-green-500' : 'text-slate-300'
+      {viewMode === 'grid' ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredDevices.map((device) => (
+            <div key={device.id} className={cn(
+              "bg-white p-6 rounded-xl shadow-sm border border-slate-200 group relative text-sm transition-all",
+              !device.enabled && "opacity-60 grayscale-[0.5]"
+            )}>
+              <div className="flex items-start justify-between mb-4">
+                <div className={cn(
+                  "w-12 h-12 rounded-2xl flex items-center justify-center shadow-inner",
+                  device.status === 'online' ? 'bg-blue-50 text-blue-600' : 'bg-slate-50 text-slate-400'
                 )}>
-                  {device.status === 'online' ? 'Online' : 'Offline'}
-                </span>
-                <p className="text-[10px] text-slate-400 mt-1">SN: {device.id}</p>
+                  {device.type === 'sensor' && <Wifi size={24} />}
+                  {device.type === 'gateway' && <Smartphone size={24} />}
+                  {device.type === 'camera' && <Video size={24} />}
+                  {device.type === 'scale' && <Scale size={24} />}
+                  {device.type === 'blood_pressure' && <Activity size={24} />}
+                </div>
+                <div className="flex flex-col items-end gap-2">
+                  <div className="flex items-center gap-2">
+                     <span className={cn(
+                      "text-[10px] font-black uppercase tracking-widest",
+                      device.status === 'online' ? 'text-green-500' : 'text-slate-300'
+                    )}>
+                      {device.status === 'online' ? '在线' : '离线'}
+                    </span>
+                    <Toggle enabled={device.enabled} onToggle={() => toggleDeviceEnabled(device.id)} />
+                  </div>
+                  <p className="text-[10px] text-slate-400 mt-1 font-mono uppercase tracking-widest">序列号: {device.sn || device.id}</p>
+                </div>
+              </div>
+
+              <h4 className={cn(
+                "font-black text-slate-900 group-hover:text-blue-600 transition-colors uppercase tracking-tight text-base mb-1",
+                !device.enabled && "text-slate-400"
+              )}>{device.name}</h4>
+              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">
+                {device.type === 'sensor' ? '环境传感器' : 
+                 device.type === 'gateway' ? '智能网关' :
+                 device.type === 'camera' ? '视觉探头' :
+                 device.type === 'scale' ? '智能体重秤' : '智能血压计'}
+              </p>
+              
+              <div className="mt-2 flex items-center gap-2 text-[10px] text-blue-600 font-bold bg-blue-50/50 px-2 py-1 rounded-lg w-fit">
+                <Bot size={12} />
+                已绑定: {MOCK_ROBOTS.find(r => r.id === device.robotId)?.name || '未绑定'}
+              </div>
+              
+              <div className="mt-6 pt-4 border-t border-slate-50 flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="flex flex-col">
+                    <span className="text-[9px] text-slate-400 uppercase font-black tracking-wider mb-0.5">最后同步</span>
+                    <span className="text-xs font-bold text-slate-600">{device.lastSync}</span>
+                  </div>
+                  {device.battery !== undefined && (
+                    <div className="flex flex-col">
+                      <span className="text-[9px] text-slate-400 uppercase font-black tracking-wider mb-0.5">电量</span>
+                      <div className="flex items-center gap-1">
+                        <BatteryMedium size={12} className={cn(device.battery < 20 ? 'text-red-500' : 'text-green-500')} />
+                        <span className="text-xs font-bold text-slate-600">{device.battery}%</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+                <button 
+                  onClick={() => openDetails(device)}
+                  className="p-2 bg-slate-50 text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-all rounded-lg active:scale-95"
+                >
+                  <Settings size={18} />
+                </button>
               </div>
             </div>
+          ))}
+          <div 
+            onClick={() => setIsAddModalOpen(true)}
+            className="border-2 border-dashed border-slate-200 rounded-xl flex flex-col items-center justify-center p-8 text-slate-400 hover:text-blue-500 hover:border-blue-300 transition-all cursor-pointer bg-slate-50/30 group"
+          >
+            <Plus size={32} className="mb-2 group-hover:scale-110 transition-transform" />
+            <span className="text-sm font-black uppercase tracking-widest">添加新设备</span>
+          </div>
+        </div>
+      ) : (
+        <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="bg-slate-50/50 border-b border-slate-100">
+                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">设备名称</th>
+                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">类型</th>
+                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">状态</th>
+                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">启用状态</th>
+                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">电量</th>
+                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">绑定机器人</th>
+                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">最后同步</th>
+                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredDevices.map((device) => (
+                <tr key={device.id} className={cn(
+                  "border-b border-slate-50 last:border-0 hover:bg-slate-50/30 transition-colors",
+                  !device.enabled && "opacity-60 bg-slate-50/20"
+                )}>
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-3">
+                      <div className={cn(
+                        "w-8 h-8 rounded-lg flex items-center justify-center shadow-inner",
+                        device.status === 'online' ? 'bg-blue-50 text-blue-600' : 'bg-slate-50 text-slate-400'
+                      )}>
+                        {device.type === 'sensor' && <Wifi size={16} />}
+                        {device.type === 'gateway' && <Smartphone size={16} />}
+                        {device.type === 'camera' && <Video size={16} />}
+                        {device.type === 'scale' && <Scale size={16} />}
+                        {device.type === 'blood_pressure' && <Activity size={16} />}
+                      </div>
+                      <div>
+                        <p className={cn("text-sm font-bold text-slate-700 leading-none mb-1", !device.enabled && "text-slate-400 uppercase tracking-tight")}>{device.name}</p>
+                        <p className="text-[10px] text-slate-400 font-mono uppercase tracking-widest">序列号: {device.sn || device.id}</p>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 text-center">
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                       {device.type === 'sensor' ? '环境传感器' : 
+                        device.type === 'gateway' ? '智能网关' :
+                        device.type === 'camera' ? '视觉探头' :
+                        device.type === 'scale' ? '体重秤' : '血压计'}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 text-center">
+                    <span className={cn(
+                      "px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-tighter shadow-sm",
+                      device.status === 'online' ? 'bg-green-100 text-green-600' : 'bg-slate-100 text-slate-400'
+                    )}>
+                      {device.status === 'online' ? '在线' : '离线'}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 text-center">
+                    <Toggle enabled={device.enabled} onToggle={() => toggleDeviceEnabled(device.id)} />
+                  </td>
+                  <td className="px-6 py-4 text-center">
+                    {device.battery !== undefined ? (
+                      <div className="flex items-center justify-center gap-1.5">
+                        <BatteryMedium size={14} className={cn(device.battery < 20 ? 'text-red-500' : 'text-green-500')} />
+                        <span className="text-xs font-bold text-slate-600">{device.battery}%</span>
+                      </div>
+                    ) : (
+                      <span className="text-slate-300">-</span>
+                    )}
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-2 text-[10px] font-black text-blue-500 uppercase tracking-widest bg-blue-50 px-2 py-1 rounded-lg w-fit shadow-inner">
+                      <Bot size={12} />
+                      {MOCK_ROBOTS.find(r => r.id === device.robotId)?.name || '未绑定'}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <span className="text-xs font-bold text-slate-500">{device.lastSync}</span>
+                  </td>
+                  <td className="px-6 py-4 text-right">
+                    <button 
+                      onClick={() => openDetails(device)}
+                      className="p-2 text-slate-300 hover:text-blue-600 transition-colors"
+                    >
+                      <Settings size={18} />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
 
-            <h4 className="font-bold text-slate-900 group-hover:text-blue-600 transition-colors uppercase tracking-tight">{device.name}</h4>
-            <div className="mt-6 pt-4 border-t border-slate-50 flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="flex flex-col">
-                  <span className="text-[9px] text-slate-400 uppercase font-bold tracking-wider">最后同步</span>
-                  <span className="text-xs font-semibold text-slate-600">{device.lastSync}</span>
-                </div>
-                {device.battery !== undefined && (
-                  <div className="flex flex-col">
-                    <span className="text-[9px] text-slate-400 uppercase font-bold tracking-wider">电量</span>
-                    <div className="flex items-center gap-1">
-                      <BatteryMedium size={12} className={cn(device.battery < 20 ? 'text-red-500' : 'text-green-500')} />
-                      <span className="text-xs font-semibold text-slate-600">{device.battery}%</span>
+      {/* Device Details Modal */}
+      <AnimatePresence>
+        {isDetailModalOpen && selectedDevice && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsDetailModalOpen(false)}
+              className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl overflow-hidden"
+            >
+              <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                <div className="flex items-center gap-4">
+                  <div className={cn(
+                    "w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg",
+                    selectedDevice.status === 'online' ? 'bg-blue-600 text-white' : 'bg-slate-400 text-white'
+                  )}>
+                    {selectedDevice.type === 'sensor' && <Wifi size={24} />}
+                    {selectedDevice.type === 'gateway' && <Smartphone size={24} />}
+                    {selectedDevice.type === 'camera' && <Video size={24} />}
+                    {selectedDevice.type === 'scale' && <Scale size={24} />}
+                    {selectedDevice.type === 'blood_pressure' && <Activity size={24} />}
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-black text-slate-900 leading-tight uppercase">{selectedDevice.name}</h3>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest font-mono">序列号: {selectedDevice.sn || selectedDevice.id}</span>
+                      <span className="w-1 h-1 rounded-full bg-slate-300" />
+                      <span className={cn(
+                        "text-[10px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded shadow-sm",
+                        selectedDevice.status === 'online' ? 'bg-green-500 text-white' : 'bg-slate-400 text-white'
+                      )}>
+                        {selectedDevice.status === 'online' ? '在线' : '离线'}
+                      </span>
                     </div>
                   </div>
-                )}
+                </div>
+                <div className="flex flex-col items-end gap-1 px-4 border-r border-slate-100 hidden sm:flex">
+                  <span className="text-[9px] text-slate-400 uppercase font-black tracking-widest leading-none">归属机器人</span>
+                  <div className="flex items-center gap-2 text-[10px] font-black text-blue-600 bg-blue-50 px-2 py-1.5 rounded-xl shadow-inner">
+                    <Bot size={14} />
+                    {MOCK_ROBOTS.find(r => r.id === selectedDevice.robotId)?.name || '未绑定'}
+                  </div>
+                </div>
+                <button 
+                  onClick={() => setIsDetailModalOpen(false)}
+                  className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition-all"
+                >
+                  <Plus className="rotate-45" size={24} />
+                </button>
               </div>
-              <button className="p-2 text-slate-300 hover:text-blue-600 transition-colors">
-                <Settings size={18} />
-              </button>
-            </div>
+
+              <div className="p-8 space-y-8 overflow-y-auto max-h-[70vh]">
+                {/* Real-time Data Section */}
+                {selectedDevice.readings && selectedDevice.readings.length > 0 && (
+                  <section className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h5 className="text-xs font-black text-slate-900 uppercase tracking-[0.2em] flex items-center gap-2">
+                        <Activity size={14} className="text-blue-600" /> 实时采集量明细
+                      </h5>
+                      <span className="text-[10px] text-indigo-600 font-bold bg-indigo-50 px-2 py-0.5 rounded-full uppercase tracking-widest">
+                        最后上报: {selectedDevice.lastSync}
+                      </span>
+                    </div>
+                    <div className="bg-slate-50/50 rounded-2xl border border-slate-100 overflow-hidden">
+                      <table className="w-full text-left text-xs">
+                        <thead>
+                          <tr className="border-b border-slate-100">
+                            <th className="px-4 py-3 font-black text-slate-400 uppercase tracking-widest">采集时间</th>
+                            <th className="px-4 py-3 font-black text-slate-400 uppercase tracking-widest">数值</th>
+                            <th className="px-4 py-3 font-black text-slate-400 uppercase tracking-widest">单位</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-50">
+                          {selectedDevice.readings.map((r, i) => (
+                            <tr key={i} className="hover:bg-white transition-colors">
+                              <td className="px-4 py-3 font-mono font-bold text-slate-400">{r.time}</td>
+                              <td className="px-4 py-3 font-black text-blue-600 text-sm tracking-tighter">{r.value}</td>
+                              <td className="px-4 py-3 font-bold text-slate-600">{r.unit}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </section>
+                )}
+
+                {/* Configuration Section */}
+                <section className="space-y-4">
+                   <h5 className="text-xs font-black text-slate-900 uppercase tracking-[0.2em] flex items-center gap-2">
+                    <Settings2 size={14} className="text-blue-600" /> 传感器模组及策略配置
+                  </h5>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="p-4 bg-white border border-slate-100 rounded-2xl space-y-3 shadow-sm">
+                      <div className="flex justify-between items-center">
+                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">上报频率</span>
+                        <span className="px-2 py-1 bg-slate-100 text-slate-600 rounded text-[10px] font-bold uppercase">{selectedDevice.config?.reportingInterval} 分钟/词</span>
+                      </div>
+                      <input type="range" className="w-full h-1.5 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-blue-600" />
+                      <p className="text-[9px] text-slate-400 leading-relaxed font-medium">降低频率可延长续航，提高频率以获得更及时的告警响应</p>
+                    </div>
+
+                    <div className="p-4 bg-white border border-slate-100 rounded-2xl space-y-3 shadow-sm">
+                      <div className="flex justify-between items-center">
+                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">传感器灵敏度</span>
+                        <span className="px-2 py-1 bg-blue-50 text-blue-600 rounded text-[10px] font-bold uppercase">{selectedDevice.config?.sensitivity}</span>
+                      </div>
+                      <div className="flex gap-2">
+                        {['低', '中', '高', '智能'].map(v => (
+                          <button key={v} className={cn(
+                            "flex-1 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-tight transition-all",
+                            selectedDevice.config?.sensitivity === v ? "bg-blue-600 text-white shadow-md shadow-blue-100" : "bg-slate-50 text-slate-400 hover:bg-slate-100"
+                          )}>
+                            {v}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="p-4 bg-white border border-slate-100 rounded-2xl space-y-3 shadow-sm">
+                       <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">运行模式定义</span>
+                       <div className="p-2 bg-slate-50 rounded-xl flex items-center justify-between">
+                         <span className="text-xs font-bold text-slate-700">{selectedDevice.config?.mode}</span>
+                         <ChevronDown size={16} className="text-slate-400" />
+                       </div>
+                    </div>
+
+                    <div className="p-4 bg-white border border-slate-100 rounded-2xl space-y-3 shadow-sm">
+                       <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">设备固件版本</span>
+                       <div className="flex items-center justify-between">
+                         <span className="font-mono text-[10px] font-bold text-slate-600">{selectedDevice.firmware}</span>
+                         <button className="text-[9px] font-black uppercase text-blue-600 hover:underline">检查更新</button>
+                       </div>
+                    </div>
+                  </div>
+                </section>
+              </div>
+
+              <div className="p-8 bg-slate-50 border-t border-slate-100 flex gap-4">
+                <button 
+                  onClick={() => setIsDetailModalOpen(false)}
+                  className="flex-1 py-4 bg-white border border-slate-200 text-slate-600 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-slate-100 transition-all active:scale-95 shadow-sm"
+                >
+                  关闭窗口
+                </button>
+                <button 
+                  className="flex-1 py-4 bg-blue-600 text-white rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-blue-700 transition-all active:scale-95 shadow-xl shadow-blue-200 flex items-center justify-center gap-2"
+                >
+                  <ShieldCheck size={18} /> 保存配置并下发
+                </button>
+              </div>
+            </motion.div>
           </div>
-        ))}
-        <div className="border-2 border-dashed border-slate-200 rounded-xl flex flex-col items-center justify-center p-8 text-slate-400 hover:text-blue-500 hover:border-blue-300 transition-all cursor-pointer bg-slate-50/30">
-          <Plus size={32} className="mb-2" />
-          <span className="text-sm font-bold uppercase tracking-widest">添加蓝牙/Zigbee设备</span>
-        </div>
-      </div>
+        )}
+      </AnimatePresence>
+
+      {/* Add Device Modal */}
+      <AnimatePresence>
+        {isAddModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsAddModalOpen(false)}
+              className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl overflow-hidden"
+            >
+              <div className="p-6 border-b border-slate-100 flex items-center justify-between">
+                <h3 className="text-xl font-black text-slate-900 uppercase">添加新监测设备</h3>
+                <button onClick={() => setIsAddModalOpen(false)} className="p-2 text-slate-400 hover:text-slate-600 rounded-xl transition-all">
+                  <Plus className="rotate-45" size={24} />
+                </button>
+              </div>
+              <div className="p-8 space-y-6">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">设备名称</label>
+                  <input 
+                    type="text" 
+                    value={addForm.name}
+                    onChange={e => setAddForm({...addForm, name: e.target.value})}
+                    placeholder="例如: 客厅毫米波雷达"
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:border-blue-500 transition-all font-bold"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">设备类型</label>
+                    <select 
+                      value={addForm.type}
+                      onChange={e => setAddForm({...addForm, type: e.target.value as any})}
+                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:border-blue-500 transition-all font-bold"
+                    >
+                      <option value="sensor">环境传感器</option>
+                      <option value="gateway">智能网关</option>
+                      <option value="camera">视觉探头</option>
+                      <option value="scale">智能体重秤</option>
+                      <option value="blood_pressure">智能血压计</option>
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">序列号 (SN)</label>
+                    <input 
+                      type="text" 
+                      value={addForm.sn}
+                      onChange={e => setAddForm({...addForm, sn: e.target.value})}
+                      placeholder="序列号..."
+                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:border-blue-500 transition-all font-mono font-bold"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 leading-none">
+                    <Bot size={14} className="text-blue-500" /> 绑定承载机器人 (必选)
+                  </label>
+                  <select 
+                    value={addForm.robotId}
+                    onChange={e => setAddForm({...addForm, robotId: e.target.value})}
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:border-blue-500 transition-all font-bold text-blue-600 focus:ring-4 focus:ring-blue-500/10"
+                  >
+                    {MOCK_ROBOTS.map(robot => (
+                      <option key={robot.id} value={robot.id}>{robot.name} ({robot.location})</option>
+                    ))}
+                  </select>
+                  <p className="text-[10px] text-slate-400 font-medium leading-relaxed">设备采集的数据将通过该机器人的网关进行上报和分发</p>
+                </div>
+              </div>
+              <div className="p-8 bg-slate-50 border-t border-slate-100 flex gap-4">
+                <button 
+                  onClick={() => setIsAddModalOpen(false)}
+                  className="flex-1 py-4 bg-white border border-slate-200 text-slate-600 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-slate-100 transition-all active:scale-95 shadow-sm"
+                >
+                  取消
+                </button>
+                <button 
+                  onClick={handleAddDevice}
+                  className="flex-1 py-4 bg-blue-600 text-white rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-blue-700 transition-all shadow-xl shadow-blue-200 flex items-center justify-center gap-2 active:scale-95"
+                >
+                  <Plus size={18} /> 确认添加并绑定
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }
@@ -781,14 +1385,23 @@ function SmartDeviceMgmtView() {
 function RobotMgmtView() {
   const [robots, setRobots] = useState<Robot[]>(MOCK_ROBOTS);
   const [filterType, setFilterType] = useState<string>('all');
+  const [searchQuery, setSearchQuery] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedRobot, setSelectedRobot] = useState<Robot | null>(null);
   const [form, setForm] = useState<Partial<Robot>>({});
+  const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
+
+  const toggleRobotEnabled = (id: string) => {
+    setRobots(prev => prev.map(r => r.id === id ? { ...r, enabled: !r.enabled } : r));
+  };
 
   const filteredRobots = robots.filter(r => 
-    filterType === 'all' || r.institutionType === filterType
+    (filterType === 'all' || r.institutionType === filterType) &&
+    (r.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+     r.sn.toLowerCase().includes(searchQuery.toLowerCase()) ||
+     r.id.toLowerCase().includes(searchQuery.toLowerCase()))
   );
-
+  
   const openModal = (robot?: Robot) => {
     if (robot) {
       setSelectedRobot(robot);
@@ -804,6 +1417,7 @@ function RobotMgmtView() {
         institutionName: '',
         location: '',
         status: 'online',
+        enabled: true,
         battery: 100,
         onboardingMethod: 'auto',
         lastActive: '刚刚'
@@ -838,17 +1452,17 @@ function RobotMgmtView() {
       animate={{ opacity: 1, y: 0 }}
       className="space-y-6"
     >
-      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
-        <div className="flex items-center gap-4">
-          <h3 className="font-bold text-xl text-slate-800">机器人设备管理</h3>
-          <div className="flex bg-white border border-slate-200 rounded-lg p-1 shadow-sm">
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+        <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
+          <h3 className="font-bold text-xl text-slate-800 shrink-0">机器人设备管理</h3>
+          <div className="flex bg-slate-50 border border-slate-200 rounded-lg p-1 shadow-inner">
             {['all', 'hospital', 'community', 'home'].map((type) => (
               <button
                 key={type}
                 onClick={() => setFilterType(type)}
                 className={cn(
-                  "px-3 py-1.5 rounded-md text-xs font-bold transition-all",
-                  filterType === type ? "bg-blue-600 text-white shadow-md shadow-blue-200" : "text-slate-500 hover:bg-slate-50"
+                  "px-3 py-1.5 rounded-md text-xs font-bold transition-all whitespace-nowrap",
+                  filterType === type ? "bg-white text-blue-600 shadow-sm" : "text-slate-400 hover:text-slate-600"
                 )}
               >
                 {type === 'all' && '全部'}
@@ -859,117 +1473,253 @@ function RobotMgmtView() {
             ))}
           </div>
         </div>
-        <div className="flex gap-3">
-          <button className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-lg text-sm font-bold hover:bg-slate-50 shadow-sm transition-all active:scale-95">
-            <QrCode size={18} className="text-blue-500" /> 扫码绑定
-          </button>
-          <button className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-lg text-sm font-bold hover:bg-slate-50 shadow-sm transition-all active:scale-95">
-            <Package size={18} className="text-indigo-500" /> 批量导入
-          </button>
+        
+        <div className="flex flex-1 items-center gap-3 w-full lg:w-auto">
+          <div className="relative flex-1 lg:max-w-xs">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+            <input 
+              type="text" 
+              placeholder="搜索机器人名称/SN/ID..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-100 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all font-medium"
+            />
+          </div>
+
+          <div className="bg-slate-100 p-1 rounded-lg flex items-center shrink-0">
+            <button 
+              onClick={() => setViewMode('list')}
+              className={cn(
+                "p-1.5 rounded-md transition-all",
+                viewMode === 'list' ? "bg-white shadow-sm text-blue-600" : "text-slate-400 hover:text-slate-600"
+              )}
+            >
+              <List size={18} />
+            </button>
+            <button 
+              onClick={() => setViewMode('grid')}
+              className={cn(
+                "p-1.5 rounded-md transition-all",
+                viewMode === 'grid' ? "bg-white shadow-sm text-blue-600" : "text-slate-400 hover:text-slate-600"
+              )}
+            >
+              <LayoutGrid size={18} />
+            </button>
+          </div>
+          
           <button 
             onClick={() => openModal()}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-bold hover:bg-blue-700 shadow-lg shadow-blue-100 transition-all active:scale-95"
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-bold hover:bg-blue-700 shadow-lg shadow-blue-100 transition-all active:scale-95 shrink-0 whitespace-nowrap"
           >
             <Plus size={18} /> 新增机器人
           </button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-        {filteredRobots.map((robot) => (
-          <div key={robot.id} className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden hover:shadow-md transition-shadow group">
-            <div className="p-6">
-              <div className="flex justify-between items-start mb-6">
-                <div className="flex items-center gap-4">
-                  <div className={cn(
-                    "w-14 h-14 rounded-2xl flex items-center justify-center shadow-inner transition-colors",
-                    robot.status === 'error' ? 'bg-red-50 text-red-500' : 'bg-blue-50 text-blue-500 group-hover:bg-blue-600 group-hover:text-white'
-                  )}>
-                    <Bot size={32} />
+      {viewMode === 'grid' ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredRobots.map((robot) => (
+            <div key={robot.id} className={cn(
+              "bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden hover:shadow-md transition-all group",
+              !robot.enabled && "opacity-60 grayscale-[0.5]"
+            )}>
+              <div className="p-6">
+                <div className="flex justify-between items-start mb-6">
+                  <div className="flex items-center gap-4">
+                    <div className={cn(
+                      "w-14 h-14 rounded-2xl flex items-center justify-center shadow-inner transition-colors",
+                      robot.status === 'error' ? 'bg-red-50 text-red-500' : 'bg-blue-50 text-blue-500 group-hover:bg-blue-600 group-hover:text-white'
+                    )}>
+                      <Bot size={32} />
+                    </div>
+                    <div>
+                      <h4 className={cn("font-bold text-lg text-slate-800", !robot.enabled && "text-slate-400")}>{robot.name}</h4>
+                      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">{robot.model}</p>
+                    </div>
                   </div>
-                  <div>
-                    <h4 className="font-bold text-lg text-slate-800">{robot.name}</h4>
-                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">{robot.model}</p>
+                  <div className="flex flex-col items-end gap-2 text-right">
+                    <div className="flex items-center gap-2">
+                       <span className={cn(
+                        "px-2 py-1 rounded-full text-[10px] font-black uppercase tracking-tight",
+                        robot.status === 'online' ? 'bg-green-100 text-green-700' : 
+                        robot.status === 'working' ? 'bg-blue-100 text-blue-700 animate-pulse' :
+                        robot.status === 'error' ? 'bg-red-100 text-red-700' : 'bg-slate-100 text-slate-500'
+                      )}>
+                        {robot.status === 'online' ? '在线' : 
+                         robot.status === 'working' ? '作业中' : 
+                         robot.status === 'error' ? '故障' : 
+                         robot.status === 'standby' ? '待机' : '离线'}
+                      </span>
+                      <Toggle enabled={robot.enabled} onToggle={() => toggleRobotEnabled(robot.id)} />
+                    </div>
+                    <div className="text-[10px] text-slate-400 font-mono font-bold">编号: {robot.id}</div>
                   </div>
                 </div>
-                <div className="text-right">
-                  <span className={cn(
-                    "px-2 py-1 rounded-full text-[10px] font-black uppercase tracking-tight",
-                    robot.status === 'online' ? 'bg-green-100 text-green-700' : 
-                    robot.status === 'working' ? 'bg-blue-100 text-blue-700 animate-pulse' :
-                    robot.status === 'error' ? 'bg-red-100 text-red-700' : 'bg-slate-100 text-slate-500'
-                  )}>
-                    {robot.status === 'online' ? '在线' : 
-                     robot.status === 'working' ? '作业中' : 
-                     robot.status === 'error' ? '故障' : 
-                     robot.status === 'standby' ? '待机' : '离线'}
-                  </span>
-                  <div className="mt-2 text-[10px] text-slate-400 font-mono font-bold">ID: {robot.id}</div>
+
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-slate-50 rounded-xl p-3 border border-slate-100">
+                      <div className="flex items-center gap-2 mb-1">
+                        <ShieldCheck size={14} className="text-blue-500" />
+                        <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">绑定机构</span>
+                      </div>
+                      <div className="text-xs font-bold text-slate-700 truncate">{robot.institutionName}</div>
+                    </div>
+                    <div className="bg-slate-50 rounded-xl p-3 border border-slate-100">
+                      <div className="flex items-center gap-2 mb-1">
+                        <MapPin size={14} className="text-indigo-500" />
+                        <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">实时位置</span>
+                      </div>
+                      <div className="text-xs font-bold text-slate-700 truncate">{robot.location}</div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between px-1">
+                    <div className="flex items-center gap-4">
+                      <div className="flex items-center gap-1.5" title="剩余电量">
+                        <BatteryMedium size={14} className={cn(robot.battery < 20 ? 'text-red-500' : 'text-green-500')} />
+                        <span className="text-xs font-bold text-slate-600">{robot.battery}%</span>
+                      </div>
+                      <div className="flex items-center gap-1.5" title="最后在线">
+                        <Clock size={14} className="text-slate-300" />
+                        <span className="text-xs font-bold text-slate-400">{robot.lastActive}</span>
+                      </div>
+                    </div>
+                    <div className="text-[10px] text-slate-400 bg-slate-100 px-2 py-0.5 rounded font-bold uppercase tracking-tight">
+                      序列号: {robot.sn}
+                    </div>
+                  </div>
                 </div>
               </div>
-
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="bg-slate-50 rounded-xl p-3 border border-slate-100">
-                    <div className="flex items-center gap-2 mb-1">
-                      <ShieldCheck size={14} className="text-blue-500" />
-                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">绑定机构</span>
+              
+              <div className="bg-slate-50/50 border-t border-slate-100 p-4 flex gap-2">
+                <button className={cn(
+                  "flex-1 py-2 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-600 transition-all shadow-sm",
+                  robot.enabled ? "hover:bg-blue-600 hover:text-white hover:border-blue-600" : "cursor-not-allowed opacity-50"
+                )} disabled={!robot.enabled}>
+                  远程控制
+                </button>
+                <button className={cn(
+                  "flex-1 py-2 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-600 transition-all shadow-sm",
+                   robot.enabled ? "hover:bg-blue-600 hover:text-white hover:border-blue-600" : "cursor-not-allowed opacity-50"
+                )} disabled={!robot.enabled}>
+                  作业日志
+                </button>
+                <button 
+                  onClick={() => openModal(robot)}
+                  className="p-2 bg-white border border-slate-200 rounded-lg text-slate-400 hover:text-blue-600 hover:border-blue-200 transition-all shadow-sm"
+                >
+                  <Settings size={14} />
+                </button>
+              </div>
+            </div>
+          ))}
+          <div 
+            onClick={() => openModal()}
+            className="border-2 border-dashed border-slate-200 rounded-2xl flex flex-col items-center justify-center p-12 text-slate-400 hover:text-blue-500 hover:border-blue-300 transition-all cursor-pointer bg-slate-50/30 group"
+          >
+            <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center mb-4 group-hover:bg-blue-50 transition-colors">
+              <Plus size={32} />
+            </div>
+            <span className="text-sm font-black uppercase tracking-widest">入网新设备</span>
+          </div>
+        </div>
+      ) : (
+        <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="bg-slate-50/50 border-b border-slate-100">
+                <th className="px-6 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest">设备名称 / ID</th>
+                <th className="px-6 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest">型号 / SN</th>
+                <th className="px-6 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">状态</th>
+                <th className="px-6 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">启用状态</th>
+                <th className="px-6 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">电量</th>
+                <th className="px-6 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest">绑定机构与位置</th>
+                <th className="px-6 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredRobots.map((robot) => (
+                <tr key={robot.id} className={cn(
+                  "border-b border-slate-50 last:border-0 hover:bg-slate-50/30 transition-colors",
+                  !robot.enabled && "opacity-60 bg-slate-50/20"
+                )}>
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-3">
+                      <div className={cn(
+                        "w-10 h-10 rounded-xl flex items-center justify-center",
+                        robot.status === 'error' ? 'bg-red-50 text-red-500' : 'bg-blue-50 text-blue-600'
+                      )}>
+                        <Bot size={20} />
+                      </div>
+                      <div>
+                        <p className={cn("text-sm font-bold text-slate-700 leading-none mb-1", !robot.enabled && "text-slate-400")}>{robot.name}</p>
+                        <p className="text-[10px] text-slate-400 font-mono">编号: {robot.id}</p>
+                      </div>
                     </div>
-                    <div className="text-xs font-bold text-slate-700 truncate">{robot.institutionName}</div>
-                  </div>
-                  <div className="bg-slate-50 rounded-xl p-3 border border-slate-100">
-                    <div className="flex items-center gap-2 mb-1">
-                      <MapPin size={14} className="text-indigo-500" />
-                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">实时位置</span>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div>
+                      <p className="text-xs font-bold text-slate-600">{robot.model}</p>
+                      <p className="text-[9px] text-slate-400 tracking-tight">序列号: {robot.sn}</p>
                     </div>
-                    <div className="text-xs font-bold text-slate-700 truncate">{robot.location}</div>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between px-1">
-                  <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-1.5" title="剩余电量">
-                      <BatteryMedium size={14} className={cn(robot.battery < 20 ? 'text-red-500' : 'text-green-500')} />
+                  </td>
+                  <td className="px-6 py-4 text-center">
+                    <span className={cn(
+                      "px-2 py-0.5 rounded text-[10px] font-black uppercase",
+                      robot.status === 'online' ? 'bg-green-100 text-green-700' : 
+                      robot.status === 'working' ? 'bg-blue-100 text-blue-700 animate-pulse' :
+                      robot.status === 'error' ? 'bg-red-100 text-red-700' : 'bg-slate-100 text-slate-500'
+                    )}>
+                      {robot.status === 'online' ? '在线' : 
+                       robot.status === 'working' ? '作业' : 
+                       robot.status === 'error' ? '故障' : 
+                       robot.status === 'standby' ? '待机' : '离线'}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 text-center">
+                    <Toggle enabled={robot.enabled} onToggle={() => toggleRobotEnabled(robot.id)} />
+                  </td>
+                  <td className="px-6 py-4 text-center">
+                    <div className="flex items-center justify-center gap-1">
+                      <BatteryMedium size={12} className={cn(robot.battery < 20 ? 'text-red-500' : 'text-green-500')} />
                       <span className="text-xs font-bold text-slate-600">{robot.battery}%</span>
                     </div>
-                    <div className="flex items-center gap-1.5" title="最后在线">
-                      <Clock size={14} className="text-slate-300" />
-                      <span className="text-xs font-bold text-slate-400">{robot.lastActive}</span>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div>
+                      <div className="flex items-center gap-1 mb-0.5">
+                        <ShieldCheck size={10} className="text-blue-500" />
+                        <span className="text-xs font-medium text-slate-600">{robot.institutionName}</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <MapPin size={10} className="text-slate-400" />
+                        <span className="text-[10px] text-slate-400">{robot.location}</span>
+                      </div>
                     </div>
-                  </div>
-                  <div className="text-[10px] text-slate-400 bg-slate-100 px-2 py-0.5 rounded font-bold uppercase tracking-tight">
-                    SN: {robot.sn}
-                  </div>
-                </div>
-              </div>
-            </div>
-            
-            <div className="bg-slate-50/50 border-t border-slate-100 p-4 flex gap-2">
-              <button className="flex-1 py-2 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-600 hover:bg-blue-600 hover:text-white hover:border-blue-600 transition-all shadow-sm">
-                远程控制
-              </button>
-              <button className="flex-1 py-2 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-600 hover:bg-blue-600 hover:text-white hover:border-blue-600 transition-all shadow-sm">
-                作业日志
-              </button>
-              <button 
-                onClick={() => openModal(robot)}
-                className="p-2 bg-white border border-slate-200 rounded-lg text-slate-400 hover:text-blue-600 hover:border-blue-200 transition-all shadow-sm"
-              >
-                <Settings size={14} />
-              </button>
-            </div>
-          </div>
-        ))}
-        <div 
-          onClick={() => openModal()}
-          className="border-2 border-dashed border-slate-200 rounded-2xl flex flex-col items-center justify-center p-12 text-slate-400 hover:text-blue-500 hover:border-blue-300 transition-all cursor-pointer bg-slate-50/30 group"
-        >
-          <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center mb-4 group-hover:bg-blue-50 transition-colors">
-            <Plus size={32} />
-          </div>
-          <span className="text-sm font-black uppercase tracking-widest">入网新设备</span>
+                  </td>
+                  <td className="px-6 py-4 text-right">
+                    <div className="flex justify-end gap-2">
+                       <button title="远程控制" disabled={!robot.enabled} className={cn(
+                         "p-1.5 text-slate-400 rounded transition-colors",
+                         robot.enabled ? "hover:bg-blue-50 hover:text-blue-600" : "cursor-not-allowed opacity-30"
+                       )}>
+                        <Smartphone size={14} />
+                      </button>
+                      <button onClick={() => openModal(robot)} className="p-1.5 hover:bg-slate-100 text-slate-400 hover:text-blue-600 rounded transition-colors">
+                        <Settings size={14} />
+                      </button>
+                      <button onClick={() => handleDelete(robot.id)} className="p-1.5 hover:bg-red-50 text-slate-400 hover:text-red-500 rounded transition-colors">
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
-      </div>
+      )}
 
       <AnimatePresence>
         {isModalOpen && (
@@ -2003,6 +2753,25 @@ function AlertsView() {
   const [selectedAlert, setSelectedAlert] = useState<AlertRule | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [form, setForm] = useState<Partial<AlertRule>>({});
+  const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const allAvailableContacts = Array.from(new Set([
+    ...MOCK_ARCHIVES.flatMap(a => a.emergencyContacts.map(c => c.name)),
+    '子女', '社区物业', '居委会', '主治医生'
+  ]));
+
+  const toggleAlertStatus = (id: string) => {
+    setAlerts(prev => prev.map(a => a.id === id ? { ...a, enabled: !a.enabled } : a));
+  };
+
+  const filteredAlerts = alerts.filter(a => 
+    a.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (a.event === 'fall' && '跌倒实时监测'.includes(searchQuery)) ||
+    (a.event === 'sudden_illness' && '突发疾病告警'.includes(searchQuery)) ||
+    (a.event === 'vital_anomaly' && '特殊指标阈值告警'.includes(searchQuery)) ||
+    (a.event === 'routine_notice' && '常规任务完成情况'.includes(searchQuery))
+  );
 
   const openModal = (alert?: AlertRule) => {
     if (alert) {
@@ -2047,91 +2816,215 @@ function AlertsView() {
       animate={{ opacity: 1 }}
       className="space-y-6"
     >
-      <div className="flex justify-between items-center mb-2">
-        <p className="text-sm text-slate-500">配置机器人检测到异常时的响应流程与分级告警机制</p>
-        <button 
-          onClick={() => openModal()}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors shadow-lg active:scale-95"
-        >
-          + 新增规则
-        </button>
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+        <div>
+          <h3 className="font-bold text-slate-800 text-lg">异常预警规则设置</h3>
+          <p className="text-xs text-slate-400">配置机器人检测到异常时的响应流程与分级告警机制</p>
+        </div>
+        
+        <div className="flex flex-1 items-center gap-3 w-full lg:w-auto">
+          <div className="relative flex-1 lg:max-w-xs">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+            <input 
+              type="text" 
+              placeholder="搜索规则描述或事件类型..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-100 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all font-medium"
+            />
+          </div>
+
+          <div className="bg-slate-100 p-1 rounded-lg flex items-center shrink-0">
+            <button 
+              onClick={() => setViewMode('list')}
+              className={cn(
+                "p-1.5 rounded-md transition-all",
+                viewMode === 'list' ? "bg-white shadow-sm text-blue-600" : "text-slate-400 hover:text-slate-600"
+              )}
+            >
+              <List size={18} />
+            </button>
+            <button 
+              onClick={() => setViewMode('grid')}
+              className={cn(
+                "p-1.5 rounded-md transition-all",
+                viewMode === 'grid' ? "bg-white shadow-sm text-blue-600" : "text-slate-400 hover:text-slate-600"
+              )}
+            >
+              <LayoutGrid size={18} />
+            </button>
+          </div>
+          
+          <button 
+            onClick={() => openModal()}
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-blue-700 transition-colors shadow-lg active:scale-95 whitespace-nowrap"
+          >
+            + 新增规则
+          </button>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {alerts.map((alert) => (
-          <div key={alert.id} className="bg-white rounded-xl p-6 shadow-sm border border-slate-200 relative overflow-hidden group hover:shadow-md transition-shadow">
-            <div className={cn(
-              "absolute top-0 right-0 px-4 py-1 text-[10px] font-black uppercase text-white rounded-bl-xl shadow-sm",
-              alert.level === 'critical' ? 'bg-red-500' : 
-              alert.level === 'warning' ? 'bg-amber-500' : 'bg-blue-500'
+      {viewMode === 'grid' ? (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {filteredAlerts.map((alert) => (
+            <div key={alert.id} className={cn(
+              "bg-white rounded-xl p-6 shadow-sm border border-slate-200 relative overflow-hidden group hover:shadow-md transition-all",
+              !alert.enabled && "opacity-60 bg-slate-50 border-slate-100"
             )}>
-              {alert.level === 'critical' ? '紧急 L3' : 
-               alert.level === 'warning' ? '警告 L2' : '提示 L1'}
-            </div>
-            
-            <div className="flex items-center gap-4 mb-6">
               <div className={cn(
-                "w-12 h-12 rounded-2xl flex items-center justify-center shadow-inner",
-                alert.level === 'critical' ? 'bg-red-50' : 
-                alert.level === 'warning' ? 'bg-amber-50' : 'bg-blue-50'
+                "absolute top-0 right-0 px-4 py-1 text-[10px] font-black uppercase text-white rounded-bl-xl shadow-sm",
+                !alert.enabled ? 'bg-slate-400' :
+                alert.level === 'critical' ? 'bg-red-500' : 
+                alert.level === 'warning' ? 'bg-amber-500' : 'bg-blue-500'
               )}>
-                {alert.event === 'fall' ? (
-                  <AlertCircle className="text-red-500" />
-                ) : alert.event === 'vital_anomaly' ? (
-                  <Activity className="text-amber-500" />
-                ) : alert.event === 'routine_notice' ? (
-                  <Bell className="text-blue-500" />
-                ) : (
-                  <AlertTriangle className={
-                    alert.level === 'critical' ? 'text-red-500' : 
-                    alert.level === 'warning' ? 'text-amber-500' : 'text-blue-500'
-                  } />
-                )}
-              </div>
-              <div>
-                <h4 className="font-bold text-slate-800">{
-                  alert.event === 'fall' ? '跌倒实时监测' : 
-                  alert.event === 'vital_anomaly' ? '生命体征异常' : 
-                  alert.event === 'routine_notice' ? '常规照护提醒' : alert.event
-                }</h4>
-                <p className="text-xs text-slate-400">{alert.description}</p>
-              </div>
-            </div>
-
-            <div className="space-y-4">
-              <div>
-                <p className="text-[10px] text-slate-400 font-bold uppercase mb-2">推送通知人</p>
-                <div className="flex flex-wrap gap-2">
-                  {alert.notifyPersons.map(p => (
-                    <span key={p} className="px-3 py-1 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium text-slate-600 shadow-sm">{p}</span>
-                  ))}
-                </div>
+                {alert.level === 'critical' ? '紧急 L3' : 
+                 alert.level === 'warning' ? '警告 L2' : '提示 L1'}
               </div>
               
-              <div className="flex items-center justify-between pt-4 border-t border-slate-50">
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
-                  <span className="text-xs text-slate-400 font-medium">已激活</span>
+              <div className="flex items-center gap-4 mb-6">
+                <div className={cn(
+                  "w-12 h-12 rounded-2xl flex items-center justify-center shadow-inner",
+                  alert.level === 'critical' ? 'bg-red-50' : 
+                  alert.level === 'warning' ? 'bg-amber-50' : 'bg-blue-50'
+                )}>
+                  {alert.event === 'fall' ? (
+                    <AlertCircle className="text-red-500" />
+                  ) : alert.event === 'vital_anomaly' ? (
+                    <Activity className="text-amber-500" />
+                  ) : alert.event === 'routine_notice' ? (
+                    <Bell className="text-blue-500" />
+                  ) : (
+                    <AlertTriangle className={
+                      alert.level === 'critical' ? 'text-red-500' : 
+                      alert.level === 'warning' ? 'text-amber-500' : 'text-blue-500'
+                    } />
+                  )}
                 </div>
-                <div className="flex gap-4">
-                  <button 
-                    onClick={() => openModal(alert)}
-                    className="text-xs font-bold text-slate-400 hover:text-blue-600 transition-colors uppercase tracking-widest"
-                  >
-                    编辑
-                  </button>
-                  <button 
-                    onClick={() => handleDelete(alert.id)}
-                    className="text-xs font-bold text-slate-400 hover:text-red-600 transition-colors uppercase tracking-widest"
-                  >
-                    删除
-                  </button>
+                <div>
+                  <h4 className="font-bold text-slate-800">{
+                    alert.event === 'fall' ? '跌倒实时监测' : 
+                    alert.event === 'sudden_illness' ? '突发疾病告警' :
+                    alert.event === 'vital_anomaly' ? '特殊指标阈值告警' : 
+                    alert.event === 'routine_notice' ? '常规任务完成情况' : alert.event
+                  }</h4>
+                  <p className="text-xs text-slate-400 font-medium">{alert.description}</p>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <p className="text-[10px] text-slate-400 font-bold uppercase mb-2 tracking-widest">推送通知人</p>
+                  <div className="flex flex-wrap gap-2">
+                    {alert.notifyPersons.map(p => (
+                      <span key={p} className="px-3 py-1 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-600 shadow-sm">{p}</span>
+                    ))}
+                  </div>
+                </div>
+                
+                <div className="flex items-center justify-between pt-4 border-t border-slate-100">
+                  <div className="flex items-center gap-2">
+                    {alert.enabled && <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>}
+                    <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">
+                      {alert.enabled ? '监测运行中' : '规则已禁用'}
+                    </span>
+                    <Toggle enabled={alert.enabled} onToggle={() => toggleAlertStatus(alert.id)} />
+                  </div>
+                  <div className="flex gap-4">
+                    <button 
+                      onClick={() => openModal(alert)}
+                      className="text-xs font-bold text-slate-400 hover:text-blue-600 transition-colors uppercase tracking-widest"
+                    >
+                      编辑
+                    </button>
+                    <button 
+                      onClick={() => handleDelete(alert.id)}
+                      className="text-xs font-bold text-slate-400 hover:text-red-600 transition-colors uppercase tracking-widest"
+                    >
+                      删除
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      ) : (
+        <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="bg-slate-50/50 border-b border-slate-100">
+                <th className="px-6 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest">告警事件</th>
+                <th className="px-6 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest">级别</th>
+                <th className="px-6 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest">推送人员</th>
+                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">启用状态</th>
+                <th className="px-6 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredAlerts.map((alert) => (
+                <tr key={alert.id} className={cn(
+                  "border-b border-slate-50 last:border-0 hover:bg-slate-50/30 transition-colors",
+                  !alert.enabled && "opacity-60 bg-slate-50/40"
+                )}>
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-3">
+                      <div className={cn(
+                        "w-8 h-8 rounded-lg flex items-center justify-center",
+                        alert.level === 'critical' ? 'bg-red-50 text-red-500' : 
+                        alert.level === 'warning' ? 'bg-amber-50 text-amber-500' : 'bg-blue-50 text-blue-500'
+                      )}>
+                        {alert.event === 'fall' ? <AlertCircle size={16} /> : 
+                         alert.event === 'vital_anomaly' ? <Activity size={16} /> : 
+                         alert.event === 'routine_notice' ? <Bell size={16} /> : <AlertTriangle size={16} />}
+                      </div>
+                      <div>
+                        <p className="text-sm font-bold text-slate-700 leading-none mb-1">{
+                          alert.event === 'fall' ? '跌倒实时监测' : 
+                          alert.event === 'sudden_illness' ? '突发疾病告警' :
+                          alert.event === 'vital_anomaly' ? '特殊指标阈值告警' : 
+                          alert.event === 'routine_notice' ? '常规任务完成情况' : alert.event
+                        }</p>
+                        <p className="text-[10px] text-slate-400 truncate max-w-[200px]">{alert.description}</p>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <span className={cn(
+                      "px-2 py-0.5 rounded text-[10px] font-black uppercase",
+                      alert.level === 'critical' ? 'bg-red-100 text-red-600' : 
+                      alert.level === 'warning' ? 'bg-amber-100 text-amber-600' : 'bg-blue-100 text-blue-600'
+                    )}>
+                      {alert.level === 'critical' ? 'L3' : alert.level === 'warning' ? 'L2' : 'L1'}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="flex -space-x-2">
+                       {alert.notifyPersons.map((p, i) => (
+                         <div key={i} className="w-6 h-6 rounded-full bg-slate-200 border-2 border-white flex items-center justify-center text-[8px] font-black text-slate-600" title={p}>
+                           {p.charAt(0)}
+                         </div>
+                       ))}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 text-center">
+                    <Toggle enabled={alert.enabled} onToggle={() => toggleAlertStatus(alert.id)} />
+                  </td>
+                  <td className="px-6 py-4 text-right">
+                    <div className="flex justify-end gap-2">
+                      <button onClick={() => openModal(alert)} className="p-1.5 hover:bg-blue-50 text-slate-400 hover:text-blue-600 rounded transition-colors">
+                        <Edit3 size={14} />
+                      </button>
+                      <button onClick={() => handleDelete(alert.id)} className="p-1.5 hover:bg-red-50 text-slate-400 hover:text-red-500 rounded transition-colors">
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       {/* Alert Edit Modal */}
       <AnimatePresence>
@@ -2214,8 +3107,7 @@ function AlertsView() {
                   <div className="space-y-2">
                     {form.notifyPersons?.map((person, index) => (
                       <div key={index} className="flex gap-2">
-                        <input
-                          type="text"
+                        <select
                           value={person}
                           onChange={e => {
                             const newPersons = [...(form.notifyPersons || [])];
@@ -2223,8 +3115,12 @@ function AlertsView() {
                             setForm({ ...form, notifyPersons: newPersons });
                           }}
                           className="flex-1 px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:border-blue-500 outline-none"
-                          placeholder="姓名/角色"
-                        />
+                        >
+                          <option value="" disabled>选择通知人...</option>
+                          {allAvailableContacts.map(contact => (
+                            <option key={contact} value={contact}>{contact}</option>
+                          ))}
+                        </select>
                         <button 
                           onClick={() => setForm({ ...form, notifyPersons: form.notifyPersons?.filter((_, i) => i !== index) })}
                           className="p-2 text-slate-300 hover:text-red-500 transition-colors"
@@ -2264,10 +3160,21 @@ function ThresholdsView() {
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
   const [currentTemplate, setCurrentTemplate] = useState('标准成人');
+  const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
+  const [searchQuery, setSearchQuery] = useState('');
 
   const [editingIndicator, setEditingIndicator] = useState<IndicatorThreshold | null>(null);
   const [editMin, setEditMin] = useState(0);
   const [editMax, setEditMax] = useState(0);
+
+  const toggleThresholdStatus = (id: string) => {
+    setThresholds(prev => prev.map(t => t.id === id ? { ...t, enabled: !t.enabled } : t));
+  };
+
+  const filteredThresholds = thresholds.filter(t => 
+    t.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    t.templateName?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   const openEditModal = (indicator: IndicatorThreshold) => {
     setEditingIndicator(indicator);
@@ -2293,11 +3200,11 @@ function ThresholdsView() {
   const handleImport = (source: string) => {
     if (source === 'UnionHospital') {
       const unionIndicators: IndicatorThreshold[] = [
-        { id: `u-${Date.now()}-1`, name: '总胆固醇 (TC)', type: 'lab', unit: 'mmol/L', minVal: 2.8, maxVal: 5.18, templateName: '协和医院实验室指标' },
-        { id: `u-${Date.now()}-2`, name: '甘油三酯 (TG)', type: 'lab', unit: 'mmol/L', minVal: 0, maxVal: 1.7, templateName: '协和医院实验室指标' },
-        { id: `u-${Date.now()}-3`, name: '谷丙转氨酶 (ALT)', type: 'lab', unit: 'U/L', minVal: 7, maxVal: 40, templateName: '协和医院实验室指标' },
-        { id: `u-${Date.now()}-4`, name: '血清肌酐 (Scr)', type: 'lab', unit: 'μmol/L', minVal: 44, maxVal: 106, templateName: '协和医院实验室指标' },
-        { id: `u-${Date.now()}-5`, name: '糖化血红蛋白 (HbA1c)', type: 'lab', unit: '%', minVal: 4.0, maxVal: 6.0, templateName: '协和医院实验室指标' },
+        { id: `u-${Date.now()}-1`, name: '总胆固醇 (TC)', type: 'lab', unit: 'mmol/L', minVal: 2.8, maxVal: 5.18, templateName: '协和医院实验室指标', enabled: true },
+        { id: `u-${Date.now()}-2`, name: '甘油三酯 (TG)', type: 'lab', unit: 'mmol/L', minVal: 0, maxVal: 1.7, templateName: '协和医院实验室指标', enabled: true },
+        { id: `u-${Date.now()}-3`, name: '谷丙转氨酶 (ALT)', type: 'lab', unit: 'U/L', minVal: 7, maxVal: 40, templateName: '协和医院实验室指标', enabled: true },
+        { id: `u-${Date.now()}-4`, name: '血清肌酐 (Scr)', type: 'lab', unit: 'μmol/L', minVal: 44, maxVal: 106, templateName: '协和医院实验室指标', enabled: true },
+        { id: `u-${Date.now()}-5`, name: '糖化血红蛋白 (HbA1c)', type: 'lab', unit: '%', minVal: 4.0, maxVal: 6.0, templateName: '协和医院实验室指标', enabled: true },
       ];
       setThresholds([...thresholds, ...unionIndicators]);
       setCurrentTemplate('协和医院实验室指标');
@@ -2311,72 +3218,161 @@ function ThresholdsView() {
       animate={{ opacity: 1 }}
       className="space-y-6"
     >
-      <div className="flex justify-between items-center bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-        <div>
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+        <div className="shrink-0">
           <h3 className="font-bold text-lg text-slate-800">健康指标标准设置</h3>
           <p className="text-xs text-slate-400">从模板导入或自定义生命体征、实验室指标基准</p>
         </div>
-        <div className="flex gap-3">
+        
+        <div className="flex flex-1 items-center gap-3 w-full lg:w-auto">
+          <div className="relative flex-1 lg:max-w-xs">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+            <input 
+              type="text" 
+              placeholder="搜索指标或模板..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-100 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all font-medium"
+            />
+          </div>
+
+          <div className="bg-slate-100 p-1 rounded-lg flex items-center shrink-0">
+            <button 
+              onClick={() => setViewMode('list')}
+              className={cn(
+                "p-1.5 rounded-md transition-all",
+                viewMode === 'list' ? "bg-white shadow-sm text-blue-600" : "text-slate-400 hover:text-slate-600"
+              )}
+            >
+              <List size={18} />
+            </button>
+            <button 
+              onClick={() => setViewMode('grid')}
+              className={cn(
+                "p-1.5 rounded-md transition-all",
+                viewMode === 'grid' ? "bg-white shadow-sm text-blue-600" : "text-slate-400 hover:text-slate-600"
+              )}
+            >
+              <LayoutGrid size={18} />
+            </button>
+          </div>
+          
           <button 
             onClick={() => setIsTemplateModalOpen(true)}
-            className="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-200 transition-colors"
+            className="px-4 py-2 bg-slate-100 text-slate-600 rounded-lg text-sm font-bold hover:bg-slate-200 transition-colors whitespace-nowrap"
           >
             模板管理
           </button>
-          <div className="relative group/import">
+          
+          <div className="relative group/import shrink-0">
             <button 
               onClick={() => setIsImportModalOpen(true)}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium flex items-center gap-2 shadow-lg shadow-blue-100 hover:bg-blue-700 transition-all"
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-bold flex items-center gap-2 shadow-lg shadow-blue-100 hover:bg-blue-700 transition-all active:scale-95"
             >
               <Plus size={18} /> 导入指标
             </button>
-            {/* Quick dropdown label */}
-            <div className="absolute top-full right-0 mt-2 opacity-0 group-hover/import:opacity-100 transition-opacity pointer-events-none">
-              <div className="bg-slate-800 text-white text-[10px] px-2 py-1 rounded whitespace-nowrap">
-                默认: 协和医院指标
-              </div>
-            </div>
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {thresholds.map((indicator) => (
-          <div key={indicator.id} className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 group hover:border-blue-200 transition-all">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-3">
-                <div className={cn(
-                  "p-2 rounded-lg",
-                  indicator.type === 'vital' ? 'bg-blue-50 text-blue-600' : 'bg-purple-50 text-purple-600'
+      {viewMode === 'grid' ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {filteredThresholds.map((indicator) => (
+            <div key={indicator.id} className={cn(
+              "bg-white p-6 rounded-xl shadow-sm border border-slate-200 group hover:border-blue-200 transition-all",
+              !indicator.enabled && "opacity-60 bg-slate-50"
+            )}>
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <div className={cn(
+                    "p-2 rounded-lg",
+                    indicator.type === 'vital' ? 'bg-blue-50 text-blue-600' : 'bg-purple-50 text-purple-600'
+                  )}>
+                    {indicator.type === 'vital' ? <Activity size={18} /> : <FileText size={18} />}
+                  </div>
+                  <div>
+                    <h5 className="font-bold text-slate-800">{indicator.name}</h5>
+                    <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">{indicator.type === 'vital' ? '生命体征' : '化验指标'}</span>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="text-xl font-black text-blue-600">{indicator.minVal} - {indicator.maxVal}</div>
+                  <div className="text-[10px] text-slate-400 font-bold">{indicator.unit}</div>
+                </div>
+              </div>
+              
+              <div className="flex items-center justify-between text-xs pt-4 border-t border-slate-50">
+                <div className="flex items-center gap-2">
+                  <Toggle enabled={indicator.enabled} onToggle={() => toggleThresholdStatus(indicator.id)} />
+                  <span className="text-slate-400">引用模板: <span className={cn(
+                    "font-bold",
+                    indicator.templateName?.includes('协和') ? 'text-indigo-600' : 'text-slate-700'
+                  )}>{indicator.templateName}</span></span>
+                </div>
+                <button 
+                  onClick={() => openEditModal(indicator)}
+                  className="px-3 py-1 rounded-lg border border-slate-100 hover:border-blue-200 hover:text-blue-600 transition-all font-medium"
+                >
+                  设置阈值
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="bg-slate-50/50 border-b border-slate-100">
+                <th className="px-6 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest">指标名称</th>
+                <th className="px-6 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">正常范围</th>
+                <th className="px-6 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">单位</th>
+                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">启用</th>
+                <th className="px-6 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredThresholds.map((indicator) => (
+                <tr key={indicator.id} className={cn(
+                  "border-b border-slate-50 last:border-0 hover:bg-slate-50/30 transition-colors",
+                  !indicator.enabled && "opacity-60 bg-slate-50/40"
                 )}>
-                  {indicator.type === 'vital' ? <Activity size={18} /> : <FileText size={18} />}
-                </div>
-                <div>
-                  <h5 className="font-bold text-slate-800">{indicator.name}</h5>
-                  <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">{indicator.type === 'vital' ? '生命体征' : '化验指标'}</span>
-                </div>
-              </div>
-              <div className="text-right">
-                <div className="text-xl font-black text-blue-600">{indicator.minVal} - {indicator.maxVal}</div>
-                <div className="text-[10px] text-slate-400 font-bold">{indicator.unit}</div>
-              </div>
-            </div>
-            
-            <div className="flex items-center justify-between text-xs pt-4 border-t border-slate-50">
-              <span className="text-slate-400">引用模板: <span className={cn(
-                "font-bold",
-                indicator.templateName?.includes('协和') ? 'text-indigo-600' : 'text-slate-700'
-              )}>{indicator.templateName}</span></span>
-              <button 
-                onClick={() => openEditModal(indicator)}
-                className="px-3 py-1 rounded-lg border border-slate-100 hover:border-blue-200 hover:text-blue-600 transition-all font-medium"
-              >
-                设置阈值
-              </button>
-            </div>
-          </div>
-        ))}
-      </div>
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-3">
+                      <div className={cn(
+                        "w-8 h-8 rounded-lg flex items-center justify-center shadow-inner",
+                        indicator.type === 'vital' ? 'bg-blue-50 text-blue-600' : 'bg-purple-50 text-purple-600'
+                      )}>
+                        {indicator.type === 'vital' ? <Activity size={16} /> : <FileText size={16} />}
+                      </div>
+                      <span className="text-sm font-bold text-slate-700">{indicator.name}</span>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 text-center">
+                    <span className="text-sm font-mono font-bold text-blue-600 bg-blue-50 px-3 py-1 rounded-full shadow-sm">
+                      {indicator.minVal} - {indicator.maxVal}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 text-center">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{indicator.unit}</span>
+                  </td>
+                  <td className="px-6 py-4 text-center">
+                    <Toggle enabled={indicator.enabled} onToggle={() => toggleThresholdStatus(indicator.id)} />
+                  </td>
+                  <td className="px-6 py-4 text-right">
+                    <button 
+                      onClick={() => openEditModal(indicator)}
+                      className="text-xs font-bold text-blue-600 hover:text-blue-700 transition-colors bg-blue-50/50 hover:bg-blue-100/50 px-3 py-1.5 rounded-lg active:scale-95"
+                    >
+                      修改基准
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       {/* Threshold Edit Modal */}
       <AnimatePresence>

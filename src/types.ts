@@ -9,6 +9,7 @@ export interface Robot {
   name: string;
   model: string; // 机器人型号
   status: 'online' | 'offline' | 'error' | 'standby' | 'working'; // 在线 / 离线 / 故障 / 待机 / 作业中
+  enabled: boolean;
   battery: number;
   location: string; // 定位
   institutionType: 'hospital' | 'community' | 'home'; // 绑定机构类型
@@ -63,6 +64,7 @@ export interface AlertRule {
   event: 'fall' | 'sudden_illness' | 'vital_anomaly' | 'routine_notice';
   notifyPersons: string[];
   description: string;
+  enabled: boolean;
 }
 
 export interface IndicatorThreshold {
@@ -73,6 +75,7 @@ export interface IndicatorThreshold {
   minVal: number;
   maxVal: number;
   templateName?: string;
+  enabled: boolean;
 }
 
 export interface CareTask {
@@ -83,6 +86,7 @@ export interface CareTask {
   scheduledTime: string;
   robotName: string;
   content: string;
+  enabled: boolean;
 }
 
 export interface SmartDevice {
@@ -90,6 +94,20 @@ export interface SmartDevice {
   name: string;
   type: 'sensor' | 'gateway' | 'camera' | 'scale' | 'blood_pressure';
   status: 'online' | 'offline';
+  enabled: boolean;
   lastSync: string;
   battery?: number;
+  sn?: string;
+  robotId?: string;
+  firmware?: string;
+  readings?: {
+    time: string;
+    value: string;
+    unit: string;
+  }[];
+  config?: {
+    reportingInterval: number; // minutes
+    sensitivity: string;
+    mode: string;
+  };
 }
