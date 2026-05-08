@@ -62,7 +62,7 @@ import { cn } from './lib/utils';
 import { Robot, HealthArchive, AlertRule, IndicatorThreshold, CareTask, SmartDevice, MedicalOrder, SecurityEvent, NotificationRecord, RehabGuidance } from './types';
 import { useAuth } from './lib/AuthContext';
 import { db, handleFirestoreError, OperationType } from './lib/firebase';
-import { collection, onSnapshot, doc, setDoc, deleteDoc, query, where, Timestamp } from 'firebase/firestore';
+import { collection, onSnapshot, doc, setDoc, deleteDoc, query, where, Timestamp, orderBy, limit } from 'firebase/firestore';
 import { 
   ClipboardList,
   Cpu,
@@ -476,16 +476,22 @@ function Toggle({ enabled, onToggle }: { enabled: boolean; onToggle: () => void 
 // --- Views ---
 
 function TaskMgmtView() {
+  const [expandedTaskId, setExpandedTaskId] = useState<string | null>(null);
   const [tasks, setTasks] = useState<CareTask[]>([]);
+  
   useEffect(() => {
     const q = query(collection(db, 'tasks'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as CareTask));
       setTasks(data);
+      // Auto-expand first task once on initial load if none expanded
+      if (data.length > 0 && !expandedTaskId) {
+        setExpandedTaskId(data[0].id);
+      }
     }, (error) => handleFirestoreError(error, OperationType.LIST, 'tasks'));
     return () => unsubscribe();
-  }, []);
-  const [expandedTaskId, setExpandedTaskId] = useState<string | null>(null);
+  }, [expandedTaskId]);
+  
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentTask, setCurrentTask] = useState<Partial<CareTask> | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -560,10 +566,37 @@ function TaskMgmtView() {
 
   const toggleStatus = async (id: string, currentStatus: string) => {
     const nextStatus = currentStatus === 'pending' ? 'completed' : 'pending';
+    const task = tasks.find(t => t.id === id);
+    if (!task) return;
+
+    const updateData: any = { status: nextStatus, updatedAt: Timestamp.now() };
+    
+    if (nextStatus === 'completed') {
+      const timeStr = new Date().toLocaleString('zh-CN', { hour12: false }).replace(/\//g, '-').slice(0, 16);
+      updateData.history = [
+        { time: timeStr, status: 'completed', remark: '标记为完成' },
+        ...(task.history || [])
+      ];
+    }
+
     try {
-       await setDoc(doc(db, 'tasks', id), { status: nextStatus, updatedAt: Timestamp.now() }, { merge: true });
+       await setDoc(doc(db, 'tasks', id), updateData, { merge: true });
     } catch (e) {
        handleFirestoreError(e, OperationType.UPDATE, `tasks/${id}`);
+    }
+  };
+
+  const handleRecordHistory = async (taskId: string, time: string) => {
+    const task = tasks.find(t => t.id === taskId);
+    if (!task) return;
+    const newHistory = [
+      { time, status: 'completed' as const, remark: '手动登记历史' },
+      ...(task.history || [])
+    ];
+    try {
+      await setDoc(doc(db, 'tasks', taskId), { history: newHistory, updatedAt: Timestamp.now() }, { merge: true });
+    } catch (e) {
+      handleFirestoreError(e, OperationType.UPDATE, `tasks/${taskId}`);
     }
   };
 
@@ -754,14 +787,38 @@ function TaskMgmtView() {
                                 <Clock size={14} /> 频次与计划规范
                               </h4>
                               <div className="bg-white p-4 rounded-2xl border border-slate-200 flex items-center justify-between">
-                                <div className="space-y-1">
+                                <div className="space-y-2">
                                   <p className="text-sm font-bold text-slate-700">
                                     {task.frequency === 'three_times_daily' ? '一天三次 (早中晚)' : 
                                      task.frequency === 'daily' ? '每天一次' : 
                                      task.frequency === 'weekly' ? '每周一次' : 
                                      task.frequency === 'monthly' ? '每月一次' : '单次临时'}
                                   </p>
-                                  <p className="text-xs text-slate-400 tracking-tight">下次执行: {task.scheduledTime}</p>
+                                  <div className="flex flex-col gap-1">
+                                    <div className="flex items-center gap-2">
+                                      <p className="text-xs text-blue-600 font-medium flex items-center gap-1">
+                                        <Clock size={12} /> 次期: {task.scheduledTime}
+                                      </p>
+                                      <button 
+                                        onClick={(e) => { e.stopPropagation(); handleRecordHistory(task.id, task.scheduledTime); }}
+                                        className="px-2 py-0.5 bg-blue-50 text-blue-600 rounded-[4px] text-[10px] font-bold hover:bg-blue-100 transition-colors border border-blue-100/50"
+                                      >
+                                        记录此次执行
+                                      </button>
+                                    </div>
+                                    {task.frequency !== 'once' && (
+                                      <p className="text-[10px] text-slate-400 flex items-center gap-1 pl-4 opacity-70">
+                                        后期: {(() => {
+                                          const date = new Date(task.scheduledTime.replace(' ', 'T'));
+                                          if (task.frequency === 'daily') date.setDate(date.getDate() + 1);
+                                          if (task.frequency === 'three_times_daily') date.setHours(date.getHours() + 4);
+                                          if (task.frequency === 'weekly') date.setDate(date.getDate() + 7);
+                                          if (task.frequency === 'monthly') date.setMonth(date.getMonth() + 1);
+                                          return date.toLocaleString('zh-CN', { hour12: false }).replace(/\//g, '-').slice(0, 16);
+                                        })()}
+                                      </p>
+                                    )}
+                                  </div>
                                 </div>
                                 <div className="flex gap-2">
                                   <span className="px-2 py-1 bg-blue-50 text-blue-600 rounded text-[10px] font-bold">自动化派发</span>
@@ -799,11 +856,11 @@ function TaskMgmtView() {
                                     </div>
                                   </div>
                                   <span className={cn(
-                                    "px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-widest",
+                                    "px-2 py-0.5 rounded text-[9px] font-black tracking-widest",
                                     run.status === 'completed' ? 'bg-green-50 text-green-600' : 
                                     run.status === 'failed' ? 'bg-red-50 text-red-600' : 'bg-slate-100 text-slate-500'
                                   )}>
-                                    {run.status === 'completed' ? 'SUCCESS' : run.status === 'failed' ? 'FAILED' : 'SKIPPED'}
+                                    {run.status === 'completed' ? '成功' : run.status === 'failed' ? '失败' : '跳过'}
                                   </span>
                                 </div>
                               )) : (
@@ -2783,7 +2840,11 @@ function StatCard({ title, value, sub, icon, color }: any) {
 function ArchivesView() {
   const [archives, setArchives] = useState<HealthArchive[]>([]);
   useEffect(() => {
-    const q = query(collection(db, 'archives'));
+    const q = query(
+      collection(db, 'archives'), 
+      orderBy('updatedAt', 'desc'),
+      limit(3)
+    );
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as HealthArchive));
       setArchives(data);
@@ -3133,7 +3194,11 @@ function ArchivesView() {
                 </div>
                 <div>
                   <h3 className="text-2xl font-bold">{isEditing ? `正在编辑: ${editForm?.name}` : `${selectedArchive.name} 健康档案`}</h3>
-                  <p className="text-white/70 text-sm font-medium">档案编号: {selectedArchive.id} | 最后更新: 2026-04-20</p>
+                  <p className="text-white/70 text-sm font-medium">档案编号: {selectedArchive.id} | 最后更新: {
+                    selectedArchive.updatedAt?.toDate 
+                      ? selectedArchive.updatedAt.toDate().toLocaleString('zh-CN', { hour12: false }).replace(/\//g, '-').slice(0, 16)
+                      : '2026-04-20'
+                  }</p>
                 </div>
               </div>
               <div className="flex items-center gap-3">

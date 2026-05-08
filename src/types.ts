@@ -56,6 +56,7 @@ export interface HealthArchive {
   medicalOrders: MedicalOrder[];
   lastExamDate: string;
   status?: 'active' | 'inactive';
+  updatedAt?: any;
 }
 
 export interface AlertRule {

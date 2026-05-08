@@ -17,7 +17,8 @@ export const MOCK_TASKS: CareTask[] = [
     history: [
       { time: '2026-04-19 10:30', status: 'completed', remark: '服药顺利' },
       { time: '2026-04-18 10:30', status: 'completed' },
-      { time: '2026-04-17 10:30', status: 'failed', remark: '老人外出' }
+      { time: '2026-04-17 10:30', status: 'failed', remark: '老人外出' },
+      { time: '2026-04-16 10:30', status: 'completed' }
     ]
   },
   { 
@@ -32,7 +33,9 @@ export const MOCK_TASKS: CareTask[] = [
     enabled: true,
     history: [
       { time: '2026-04-20 09:00', status: 'completed', remark: '测量值: 6.8 mmol/L' },
-      { time: '2026-04-19 09:00', status: 'completed', remark: '测量值: 7.2 mmol/L' }
+      { time: '2026-04-19 21:00', status: 'completed', remark: '睡前常规测量' },
+      { time: '2026-04-19 09:00', status: 'completed', remark: '测量值: 7.2 mmol/L' },
+      { time: '2026-04-18 09:00', status: 'completed', remark: '正常' }
     ]
   },
   { 
@@ -46,7 +49,9 @@ export const MOCK_TASKS: CareTask[] = [
     content: '坐站平衡训练', 
     enabled: true,
     history: [
-      { time: '2026-04-13 08:30', status: 'completed', remark: '完成良好，坚持了15分钟' }
+      { time: '2026-04-20 08:30', status: 'failed', remark: '老人身体不适，取消训练' },
+      { time: '2026-04-13 08:30', status: 'completed', remark: '完成良好，坚持了15分钟' },
+      { time: '2026-04-06 08:30', status: 'completed' }
     ]
   },
   { 
@@ -58,7 +63,10 @@ export const MOCK_TASKS: CareTask[] = [
     frequency: 'daily',
     robotName: '智护-B05', 
     content: '胰岛素注射 10U', 
-    enabled: true 
+    enabled: true,
+    history: [
+      { time: '2026-04-19 12:00', status: 'completed' }
+    ]
   },
   { 
     id: 'T5', 
@@ -69,7 +77,10 @@ export const MOCK_TASKS: CareTask[] = [
     frequency: 'daily',
     robotName: '智护-A01', 
     content: '血氧饱和度监测', 
-    enabled: true 
+    enabled: true,
+    history: [
+      { time: '2026-04-19 14:00', status: 'completed', remark: '监测值 98%' }
+    ]
   },
   { 
     id: 'T6', 
@@ -82,7 +93,8 @@ export const MOCK_TASKS: CareTask[] = [
     content: '认知功能康复游戏', 
     enabled: true,
     history: [
-      { time: '2026-04-13 15:30', status: 'skipped', remark: '医生建议休息' }
+      { time: '2026-04-13 15:30', status: 'skipped', remark: '医生建议休息' },
+      { time: '2026-04-06 15:30', status: 'completed' }
     ]
   },
   {
@@ -97,7 +109,8 @@ export const MOCK_TASKS: CareTask[] = [
     enabled: true,
     history: [
       { time: '2026-04-20 18:30', status: 'completed', remark: '晚间服药，状态良好' },
-      { time: '2026-04-20 12:30', status: 'completed', remark: '午间服药' }
+      { time: '2026-04-20 12:30', status: 'completed', remark: '午间服药' },
+      { time: '2026-04-20 07:30', status: 'completed', remark: '早起服药' }
     ]
   },
   {
@@ -113,6 +126,21 @@ export const MOCK_TASKS: CareTask[] = [
     history: [
       { time: '2026-04-20 16:00', status: 'completed', remark: '下午测量值正常' },
       { time: '2026-04-20 11:00', status: 'failed', remark: '设备连接失败' }
+    ]
+  },
+  {
+    id: 'T9',
+    patientName: '李奶奶',
+    type: 'medication',
+    status: 'pending',
+    scheduledTime: '2026-04-21 12:00',
+    frequency: 'daily',
+    robotName: '智护-A02',
+    content: '口服阿司匹林 100mg',
+    enabled: true,
+    history: [
+      { time: '2026-04-20 12:00', status: 'completed', remark: '餐后按时服用' },
+      { time: '2026-04-19 12:00', status: 'completed' }
     ]
   }
 ];
@@ -294,7 +322,8 @@ export const MOCK_ARCHIVES: HealthArchive[] = [
       { id: 'O2', type: 'checkup', content: '心电图复查', frequency: '1次/月' }
     ],
     lastExamDate: '2026-03-20',
-    status: 'active'
+    status: 'active',
+    updatedAt: { seconds: 1713580800, nanoseconds: 0 } // 2024-04-20
   },
   { 
     id: '2', 
@@ -317,7 +346,8 @@ export const MOCK_ARCHIVES: HealthArchive[] = [
       { id: 'O3', type: 'rehab', content: '膝关节屈伸训练', frequency: '2次/日' }
     ],
     lastExamDate: '2026-04-05',
-    status: 'active'
+    status: 'active',
+    updatedAt: { seconds: 1713667200, nanoseconds: 0 } // 2024-04-21
   },
   { 
     id: '3', 
@@ -341,7 +371,8 @@ export const MOCK_ARCHIVES: HealthArchive[] = [
       { id: 'O4', type: 'checkup', content: '胃镜检查', frequency: '其他' }
     ],
     lastExamDate: '2026-01-12',
-    status: 'active'
+    status: 'active',
+    updatedAt: { seconds: 1712803200, nanoseconds: 0 } // 2024-04-11
   },
   { 
     id: '4', 
@@ -365,7 +396,8 @@ export const MOCK_ARCHIVES: HealthArchive[] = [
       { id: 'O5', type: 'diet', content: '高钙低糖饮食', frequency: '3次/日' }
     ],
     lastExamDate: '2026-05-02',
-    status: 'active'
+    status: 'active',
+    updatedAt: { seconds: 1714656000, nanoseconds: 0 } // 2024-05-02
   },
   { 
     id: '5', 
@@ -389,7 +421,8 @@ export const MOCK_ARCHIVES: HealthArchive[] = [
       { id: 'O6', type: 'rehab', content: '手部精细动作训练', frequency: '2次/日' }
     ],
     lastExamDate: '2026-04-20',
-    status: 'active'
+    status: 'active',
+    updatedAt: { seconds: 1713580800, nanoseconds: 0 } // 2024-04-20
   }
 ];
 
