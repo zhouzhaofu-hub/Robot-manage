@@ -78,15 +78,24 @@ export interface IndicatorThreshold {
   enabled: boolean;
 }
 
+export interface CareTaskExecution {
+  time: string;
+  status: 'completed' | 'failed' | 'skipped';
+  remark?: string;
+  performer?: string;
+}
+
 export interface CareTask {
   id: string;
   patientName: string;
   type: 'medication' | 'measurement' | 'exercise' | 'emotion';
   status: 'pending' | 'completed' | 'failed';
   scheduledTime: string;
+  frequency: 'once' | 'daily' | 'three_times_daily' | 'weekly' | 'monthly';
   robotName: string;
   content: string;
   enabled: boolean;
+  history?: CareTaskExecution[];
 }
 
 export interface SmartDevice {

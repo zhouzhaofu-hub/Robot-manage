@@ -4,12 +4,117 @@ export const DISEASE_TAGS = ['高血压', '糖尿病', '冠心病', '高血脂',
 export const COMMON_DIAGNOSES = ['原发性高血压', '2型糖尿病', '骨质疏松', '慢性阻塞性肺疾病', '白内障', '类风湿性关节炎'];
 
 export const MOCK_TASKS: CareTask[] = [
-  { id: 'T1', patientName: '张大爷', type: 'medication', status: 'pending', scheduledTime: '2026-04-20 10:30', robotName: '智护-A01', content: '口服氨氯地平 5mg', enabled: true },
-  { id: 'T2', patientName: '李奶奶', type: 'measurement', status: 'completed', scheduledTime: '2026-04-20 09:00', robotName: '智护-A02', content: '餐后血糖测量', enabled: true },
-  { id: 'T3', patientName: '张大爷', type: 'exercise', status: 'failed', scheduledTime: '2026-04-20 08:30', robotName: '智护-A01', content: '坐站平衡训练', enabled: true },
-  { id: 'T4', patientName: '王五', type: 'medication', status: 'pending', scheduledTime: '2026-04-20 12:00', robotName: '智护-B05', content: '胰岛素注射 10U', enabled: true },
-  { id: 'T5', patientName: '赵老师', type: 'measurement', status: 'pending', scheduledTime: '2026-04-20 14:00', robotName: '智护-A01', content: '血氧饱和度监测', enabled: true },
-  { id: 'T6', patientName: '孙奶奶', type: 'exercise', status: 'completed', scheduledTime: '2026-04-20 15:30', robotName: '智护-A03', content: '认知功能康复游戏', enabled: true },
+  { 
+    id: 'T1', 
+    patientName: '张大爷', 
+    type: 'medication', 
+    status: 'pending', 
+    scheduledTime: '2026-04-20 10:30', 
+    frequency: 'daily',
+    robotName: '智护-A01', 
+    content: '口服氨氯地平 5mg', 
+    enabled: true,
+    history: [
+      { time: '2026-04-19 10:30', status: 'completed', remark: '服药顺利' },
+      { time: '2026-04-18 10:30', status: 'completed' },
+      { time: '2026-04-17 10:30', status: 'failed', remark: '老人外出' }
+    ]
+  },
+  { 
+    id: 'T2', 
+    patientName: '李奶奶', 
+    type: 'measurement', 
+    status: 'completed', 
+    scheduledTime: '2026-04-20 09:00', 
+    frequency: 'daily',
+    robotName: '智护-A02', 
+    content: '餐后血糖测量', 
+    enabled: true,
+    history: [
+      { time: '2026-04-20 09:00', status: 'completed', remark: '测量值: 6.8 mmol/L' },
+      { time: '2026-04-19 09:00', status: 'completed', remark: '测量值: 7.2 mmol/L' }
+    ]
+  },
+  { 
+    id: 'T3', 
+    patientName: '张大爷', 
+    type: 'exercise', 
+    status: 'failed', 
+    scheduledTime: '2026-04-20 08:30', 
+    frequency: 'weekly',
+    robotName: '智护-A01', 
+    content: '坐站平衡训练', 
+    enabled: true,
+    history: [
+      { time: '2026-04-13 08:30', status: 'completed', remark: '完成良好，坚持了15分钟' }
+    ]
+  },
+  { 
+    id: 'T4', 
+    patientName: '王五', 
+    type: 'medication', 
+    status: 'pending', 
+    scheduledTime: '2026-04-20 12:00', 
+    frequency: 'daily',
+    robotName: '智护-B05', 
+    content: '胰岛素注射 10U', 
+    enabled: true 
+  },
+  { 
+    id: 'T5', 
+    patientName: '赵老师', 
+    type: 'measurement', 
+    status: 'pending', 
+    scheduledTime: '2026-04-20 14:00', 
+    frequency: 'daily',
+    robotName: '智护-A01', 
+    content: '血氧饱和度监测', 
+    enabled: true 
+  },
+  { 
+    id: 'T6', 
+    patientName: '孙奶奶', 
+    type: 'exercise', 
+    status: 'completed', 
+    scheduledTime: '2026-04-20 15:30', 
+    frequency: 'weekly',
+    robotName: '智护-A03', 
+    content: '认知功能康复游戏', 
+    enabled: true,
+    history: [
+      { time: '2026-04-13 15:30', status: 'skipped', remark: '医生建议休息' }
+    ]
+  },
+  {
+    id: 'T7',
+    patientName: '张大爷',
+    type: 'medication',
+    status: 'pending',
+    scheduledTime: '2026-04-21 08:00',
+    frequency: 'three_times_daily',
+    robotName: '智护-A01',
+    content: '餐后助消化药 (早/中/晚)',
+    enabled: true,
+    history: [
+      { time: '2026-04-20 18:30', status: 'completed', remark: '晚间服药，状态良好' },
+      { time: '2026-04-20 12:30', status: 'completed', remark: '午间服药' }
+    ]
+  },
+  {
+    id: 'T8',
+    patientName: '孙奶奶',
+    type: 'measurement',
+    status: 'pending',
+    scheduledTime: '2026-04-21 09:00',
+    frequency: 'three_times_daily',
+    robotName: '智护-A03',
+    content: '关节活动度监测 (三测/日)',
+    enabled: true,
+    history: [
+      { time: '2026-04-20 16:00', status: 'completed', remark: '下午测量值正常' },
+      { time: '2026-04-20 11:00', status: 'failed', remark: '设备连接失败' }
+    ]
+  }
 ];
 
 export const MOCK_DEVICES: SmartDevice[] = [

@@ -30,11 +30,12 @@ service cloud.firestore {
     }
 
     function isValidTask(data) {
-      return data.keys().hasAll(['patientName', 'type', 'status', 'scheduledTime', 'robotName', 'content', 'enabled']) // + createdAt, updatedAt optional on updates? Wait, let's just use strict keys on create
+      return data.keys().hasAll(['patientName', 'type', 'status', 'scheduledTime', 'robotName', 'content', 'enabled', 'frequency'])
         && data.patientName is string && data.patientName.size() <= 128
         && data.type in ['medication', 'measurement', 'exercise', 'emotion']
         && data.status in ['pending', 'completed', 'failed']
         && data.scheduledTime is string && data.scheduledTime.size() <= 50
+        && data.frequency in ['once', 'daily', 'three_times_daily', 'weekly', 'monthly']
         && data.robotName is string && data.robotName.size() <= 128
         && data.content is string && data.content.size() <= 2000
         && data.enabled is bool;
@@ -144,7 +145,7 @@ service cloud.firestore {
       allow list: if isSignedIn();
       allow create: if isValidId(taskId) && (isAdmin() || (isSignedIn() && isValidTask(incoming()) && incoming().createdAt == request.time));
       allow update: if isValidId(taskId) && (isAdmin() || (isSignedIn() && (
-        incoming().diff(existing()).affectedKeys().hasOnly(['patientName', 'type', 'status', 'scheduledTime', 'robotName', 'content', 'enabled', 'updatedAt']) && (incoming().updatedAt == request.time || !incoming().keys().hasAll(['updatedAt']))
+        incoming().diff(existing()).affectedKeys().hasOnly(['patientName', 'type', 'status', 'scheduledTime', 'robotName', 'content', 'enabled', 'updatedAt', 'frequency', 'history']) && (incoming().updatedAt == request.time || !incoming().keys().hasAll(['updatedAt']))
       )));
       allow delete: if isValidId(taskId) && (isAdmin() || isSignedIn());
     }

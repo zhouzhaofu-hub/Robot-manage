@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Fragment } from 'react';
 import { 
   Bot, 
   UserCircle, 
@@ -485,9 +485,11 @@ function TaskMgmtView() {
     }, (error) => handleFirestoreError(error, OperationType.LIST, 'tasks'));
     return () => unsubscribe();
   }, []);
+  const [expandedTaskId, setExpandedTaskId] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentTask, setCurrentTask] = useState<Partial<CareTask> | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'executed'>('all');
 
   const toggleTaskEnabled = async (id: string) => {
     const task = tasks.find(t => t.id === id);
@@ -499,12 +501,17 @@ function TaskMgmtView() {
     }
   };
 
-  const filteredTasks = tasks.filter(t => 
-    t.patientName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    t.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    t.robotName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    t.id.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredTasks = tasks.filter(t => {
+    const matchesSearch = t.patientName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      t.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      t.robotName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      t.id.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    if (statusFilter === 'all') return matchesSearch;
+    if (statusFilter === 'pending') return matchesSearch && t.status === 'pending';
+    if (statusFilter === 'executed') return matchesSearch && (t.status === 'completed' || t.status === 'failed');
+    return matchesSearch;
+  });
 
   const openModal = (task?: CareTask) => {
     if (task) {
@@ -518,6 +525,7 @@ function TaskMgmtView() {
         type: 'medication',
         status: 'pending',
         scheduledTime: timeStr,
+        frequency: 'daily',
         robotName: MOCK_ROBOTS[0]?.name || '',
         content: '',
         enabled: true
@@ -595,11 +603,43 @@ function TaskMgmtView() {
         </div>
       </div>
 
+      <div className="flex items-center gap-2 bg-slate-50 p-1 rounded-xl w-fit border border-slate-200">
+        <button 
+          onClick={() => setStatusFilter('all')}
+          className={cn(
+            "px-6 py-2 rounded-lg text-xs font-bold transition-all",
+            statusFilter === 'all' ? "bg-white text-blue-600 shadow-sm" : "text-slate-500 hover:text-slate-700"
+          )}
+        >
+          全部计划 ({tasks.length})
+        </button>
+        <button 
+          onClick={() => setStatusFilter('pending')}
+          className={cn(
+            "px-6 py-2 rounded-lg text-xs font-bold transition-all",
+            statusFilter === 'pending' ? "bg-white text-amber-600 shadow-sm" : "text-slate-500 hover:text-slate-700"
+          )}
+        >
+          待执行 ({tasks.filter(t => t.status === 'pending').length})
+        </button>
+        <button 
+          onClick={() => setStatusFilter('executed')}
+          className={cn(
+            "px-6 py-2 rounded-lg text-xs font-bold transition-all",
+            statusFilter === 'executed' ? "bg-white text-green-600 shadow-sm" : "text-slate-500 hover:text-slate-700"
+          )}
+        >
+          已执行 ({tasks.filter(t => t.status !== 'pending').length})
+        </button>
+      </div>
+
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
         <table className="w-full text-left border-collapse">
           <thead>
-            <tr className="bg-slate-50/50 border-b border-slate-200">
+            <tr className="bg-slate-50 border-b border-slate-200">
+              <th className="w-12 px-6 py-4"></th>
               <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">开始执行时间</th>
+              <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">频次</th>
               <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">看护对象</th>
               <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">任务内容</th>
               <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">执行机器人</th>
@@ -609,81 +649,178 @@ function TaskMgmtView() {
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
-            {filteredTasks.map((task) => (
-              <tr key={task.id} className={cn(
-                "hover:bg-slate-50/50 transition-colors group text-sm",
-                !task.enabled && "opacity-60 bg-slate-50/40"
-              )}>
-                <td className="px-6 py-4 font-mono text-slate-500">{task.scheduledTime}</td>
-                <td className="px-6 py-4 font-bold text-slate-700">{task.patientName}</td>
-                <td className="px-6 py-4">
-                  <div className="flex items-center gap-2">
-                    <span className={cn(
-                      "p-1.5 rounded-lg shadow-inner",
-                      task.type === 'medication' ? 'bg-blue-50 text-blue-600' :
-                      task.type === 'measurement' ? 'bg-green-50 text-green-600' :
-                      task.type === 'exercise' ? 'bg-purple-50 text-purple-600' : 'bg-pink-50 text-pink-600'
-                    )}>
-                      {task.type === 'medication' && <CheckCircle2 size={14} />}
-                      {task.type === 'measurement' && <Activity size={14} />}
-                      {task.type === 'exercise' && <Activity size={14} />}
-                      {task.type === 'emotion' && <Heart size={14} />}
-                    </span>
-                    <span className="font-medium text-slate-600">{task.content}</span>
-                  </div>
-                </td>
-                <td className="px-6 py-4">
-                  <div className="flex items-center gap-2 text-slate-500 font-medium">
-                    <Bot size={14} className="text-blue-400" />
-                    {task.robotName}
-                  </div>
-                </td>
-                <td className="px-6 py-4 text-center">
-                  <Toggle enabled={task.enabled} onToggle={() => toggleTaskEnabled(task.id)} />
-                </td>
-                <td className="px-6 py-4">
-                  <span className={cn(
-                    "px-2.5 py-1 rounded-full text-[10px] font-bold uppercase",
-                    task.status === 'completed' ? 'bg-green-100 text-green-700' : 
-                    task.status === 'failed' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'
-                  )}>
-                    {task.status === 'completed' ? '已完成' : task.status === 'failed' ? '执行失败' : '排队中'}
-                  </span>
-                </td>
-                <td className="px-6 py-4 text-right">
-                  <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button 
-                      onClick={() => toggleStatus(task.id, task.status)}
-                      title={task.status === 'pending' ? '标记完成' : '重置为待办'} 
-                      className="p-1.5 text-slate-400 hover:text-amber-500 hover:bg-amber-50 rounded-lg transition-colors"
-                    >
-                      {task.status === 'completed' ? <RotateCcw size={16} /> : <Pause size={16} />}
-                    </button>
-                    <button 
-                      onClick={() => openModal(task)}
-                      title="编辑" 
-                      className="p-1.5 text-slate-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-colors"
-                    >
-                      <Edit3 size={16} />
-                    </button>
-                    <button 
-                      onClick={() => setTasks(prev => prev.map(t => t.id === task.id ? { ...t, status: 'pending', scheduledTime: new Date().toISOString().slice(0, 16).replace('T', ' ') } : t))}
-                      title="重启" 
-                      className="p-1.5 text-slate-400 hover:text-indigo-500 hover:bg-indigo-50 rounded-lg transition-colors"
-                    >
-                      <Zap size={16} />
-                    </button>
-                    <button 
-                      onClick={() => handleDelete(task.id)}
-                      title="删除" 
-                      className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
+            {filteredTasks.map((task) => {
+              const isExpanded = expandedTaskId === task.id;
+              return (
+                <Fragment key={task.id}>
+                  <tr 
+                    onClick={() => setExpandedTaskId(isExpanded ? null : task.id)}
+                    className={cn(
+                      "hover:bg-blue-50/30 transition-colors group text-sm cursor-pointer",
+                      !task.enabled && "opacity-60 bg-slate-50/40",
+                      isExpanded && "bg-blue-50/50"
+                    )}
+                  >
+                    <td className="px-6 py-4 text-center">
+                      <ChevronRight 
+                        size={14} 
+                        className={cn("text-slate-400 transition-transform", isExpanded && "rotate-90 text-blue-600")} 
+                      />
+                    </td>
+                    <td className="px-6 py-4 font-mono text-slate-500 whitespace-nowrap">{task.scheduledTime}</td>
+                    <td className="px-6 py-4">
+                      <span className="px-2 py-0.5 bg-slate-100 text-slate-500 rounded text-[10px] font-bold uppercase whitespace-nowrap">
+                        {task.frequency === 'daily' ? '每天' : 
+                         task.frequency === 'three_times_daily' ? '一天三次' :
+                         task.frequency === 'weekly' ? '每周' : 
+                         task.frequency === 'monthly' ? '每月' : '单次'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 font-bold text-slate-700 whitespace-nowrap">{task.patientName}</td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-2">
+                        <span className={cn(
+                          "p-1.5 rounded-lg shadow-inner",
+                          task.type === 'medication' ? 'bg-blue-50 text-blue-600' :
+                          task.type === 'measurement' ? 'bg-green-50 text-green-600' :
+                          task.type === 'exercise' ? 'bg-purple-50 text-purple-600' : 'bg-pink-50 text-pink-600'
+                        )}>
+                          {task.type === 'medication' && <CheckCircle2 size={14} />}
+                          {task.type === 'measurement' && <Activity size={14} />}
+                          {task.type === 'exercise' && <Activity size={14} />}
+                          {task.type === 'emotion' && <Heart size={14} />}
+                        </span>
+                        <span className="font-medium text-slate-600 line-clamp-1">{task.content}</span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-2 text-slate-500 font-medium whitespace-nowrap">
+                        <Bot size={14} className="text-blue-400" />
+                        {task.robotName}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 text-center">
+                      <div onClick={e => e.stopPropagation()}>
+                        <Toggle enabled={task.enabled} onToggle={() => toggleTaskEnabled(task.id)} />
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className={cn(
+                        "px-2.5 py-1 rounded-full text-[10px] font-bold uppercase whitespace-nowrap",
+                        task.status === 'completed' ? 'bg-green-100 text-green-700' : 
+                        task.status === 'failed' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'
+                      )}>
+                        {task.status === 'completed' ? '已完成' : task.status === 'failed' ? '执行失败' : '排队中'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button 
+                          onClick={(e) => { e.stopPropagation(); toggleStatus(task.id, task.status); }}
+                          title={task.status === 'pending' ? '标记完成' : '重置为待办'} 
+                          className="p-1.5 text-slate-400 hover:text-amber-500 hover:bg-amber-50 rounded-lg transition-colors"
+                        >
+                          {task.status === 'completed' ? <RotateCcw size={16} /> : <Pause size={16} />}
+                        </button>
+                        <button 
+                          onClick={(e) => { e.stopPropagation(); openModal(task); }}
+                          title="编辑" 
+                          className="p-1.5 text-slate-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-colors"
+                        >
+                          <Edit3 size={16} />
+                        </button>
+                        <button 
+                          onClick={(e) => { e.stopPropagation(); handleDelete(task.id); }}
+                          title="删除" 
+                          className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+
+                  {isExpanded && (
+                    <tr className="bg-slate-50/50">
+                      <td colSpan={9} className="px-12 py-6">
+                        <motion.div
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: 'auto' }}
+                          className="grid grid-cols-1 md:grid-cols-2 gap-8"
+                        >
+                          <div className="space-y-6">
+                            <div>
+                              <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+                                <Clock size={14} /> 频次与计划规范
+                              </h4>
+                              <div className="bg-white p-4 rounded-2xl border border-slate-200 flex items-center justify-between">
+                                <div className="space-y-1">
+                                  <p className="text-sm font-bold text-slate-700">
+                                    {task.frequency === 'three_times_daily' ? '一天三次 (早中晚)' : 
+                                     task.frequency === 'daily' ? '每天一次' : 
+                                     task.frequency === 'weekly' ? '每周一次' : 
+                                     task.frequency === 'monthly' ? '每月一次' : '单次临时'}
+                                  </p>
+                                  <p className="text-xs text-slate-400 tracking-tight">下次执行: {task.scheduledTime}</p>
+                                </div>
+                                <div className="flex gap-2">
+                                  <span className="px-2 py-1 bg-blue-50 text-blue-600 rounded text-[10px] font-bold">自动化派发</span>
+                                  <span className="px-2 py-1 bg-slate-50 text-slate-500 rounded text-[10px] font-bold">{task.robotName} 承载</span>
+                                </div>
+                              </div>
+                            </div>
+
+                            <div>
+                              <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+                                <Info size={14} /> 任务内容详述
+                              </h4>
+                              <div className="bg-white p-4 rounded-2xl border border-slate-200">
+                                <p className="text-sm font-medium text-slate-600 leading-relaxed">{task.content}</p>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div>
+                            <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 flex items-center justify-between">
+                              <span className="flex items-center gap-2"><History size={14} /> 最近执行历史</span>
+                              <span className="text-slate-300">共 {task.history?.length || 0} 条执行痕迹</span>
+                            </h4>
+                            <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2 scrollbar-thin">
+                              {(task.history && task.history.length > 0) ? task.history.map((run, idx) => (
+                                <div key={idx} className="flex items-center justify-between p-3 bg-white rounded-xl border border-slate-100 hover:border-blue-100 transition-colors shadow-sm">
+                                  <div className="flex items-center gap-3">
+                                    <div className={cn(
+                                      "w-2 h-2 rounded-full shadow-sm",
+                                      run.status === 'completed' ? 'bg-green-500' : run.status === 'failed' ? 'bg-red-500' : 'bg-slate-400'
+                                    )} />
+                                    <div className="flex flex-col">
+                                      <span className="text-xs font-mono font-bold text-slate-700">{run.time}</span>
+                                      {run.remark && <span className="text-[10px] text-slate-400 italic leading-tight">备注: {run.remark}</span>}
+                                    </div>
+                                  </div>
+                                  <span className={cn(
+                                    "px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-widest",
+                                    run.status === 'completed' ? 'bg-green-50 text-green-600' : 
+                                    run.status === 'failed' ? 'bg-red-50 text-red-600' : 'bg-slate-100 text-slate-500'
+                                  )}>
+                                    {run.status === 'completed' ? 'SUCCESS' : run.status === 'failed' ? 'FAILED' : 'SKIPPED'}
+                                  </span>
+                                </div>
+                              )) : (
+                                <div className="flex flex-col items-center justify-center py-8 text-slate-300 bg-slate-50/50 rounded-2xl border border-dashed border-slate-200">
+                                  <History size={32} className="opacity-10 mb-2" />
+                                  <p className="text-xs font-medium">暂无云端同步的历史执行数据</p>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </motion.div>
+                      </td>
+                    </tr>
+                  )}
+                </Fragment>
+              );
+            })}
           </tbody>
         </table>
       </div>
@@ -726,6 +863,23 @@ function TaskMgmtView() {
                     />
                   </div>
                   <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">执行频次</label>
+                    <select
+                      value={currentTask.frequency}
+                      onChange={e => setCurrentTask({ ...currentTask, frequency: e.target.value as any })}
+                      className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
+                    >
+                      <option value="once">单次执行</option>
+                      <option value="daily">每天 (Daily)</option>
+                      <option value="three_times_daily">一天三次 (3 Times/Day)</option>
+                      <option value="weekly">每周 (Weekly)</option>
+                      <option value="monthly">每月 (Monthly)</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
                     <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">任务类型</label>
                     <select
                       value={currentTask.type}
@@ -737,6 +891,15 @@ function TaskMgmtView() {
                       <option value="exercise">康复训练</option>
                       <option value="routine">日常起居</option>
                     </select>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">计划执行时间</label>
+                    <input
+                      type="text"
+                      value={currentTask.scheduledTime}
+                      onChange={e => setCurrentTask({ ...currentTask, scheduledTime: e.target.value })}
+                      className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all font-mono"
+                    />
                   </div>
                 </div>
 
@@ -779,15 +942,6 @@ function TaskMgmtView() {
                         <option key={r.id} value={r.name}>{r.name}</option>
                       ))}
                     </select>
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">计划执行时间</label>
-                    <input
-                      type="text"
-                      value={currentTask.scheduledTime}
-                      onChange={e => setCurrentTask({ ...currentTask, scheduledTime: e.target.value })}
-                      className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all font-mono"
-                    />
                   </div>
                 </div>
               </div>
